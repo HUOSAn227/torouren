@@ -1,0 +1,2636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="screen-orientation" content="landscape">
+<title>游戏偷肉人</title>
+<style>
+  html, body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; user-select: none; -webkit-user-select: none; }
+  canvas { display: block; }
+  #rotateHint { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; z-index: 999; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font-size: 18px; }
+  #rotateHint .ico { font-size: 60px; }
+  #mainMenu { position: fixed; inset: 0; z-index: 300; background: url('./主菜单.png') center/cover no-repeat; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 14px; padding-left: 8vw; box-sizing: border-box; }
+  #mainMenu .menuBtn { width: 160px; max-width: 50vw; height: 60px; object-fit: contain; cursor: pointer; background: rgba(120, 16, 16, 0.55); border: 2px solid rgba(190, 40, 40, 0.85); border-radius: 8px; box-sizing: border-box; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+  #mainMenu .menuBtn:active { transform: scale(0.95); }
+  #mainMenu .menuFallback { width: 160px; height: 60px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: bold; letter-spacing: 4px; background: rgba(120, 16, 16, 0.7); border: 2px solid rgba(190, 40, 40, 0.9); border-radius: 8px; cursor: pointer; text-shadow: 0 0 8px #000; }
+
+  #introScreen { position: fixed; inset: 0; z-index: 200; background: #000; color: #ddd; display: none; flex-direction: column; align-items: center; justify-content: flex-start; padding: 60px 30px 100px 30px; text-align: center; line-height: 2; box-sizing: border-box; }
+  #introText { max-width: 720px; font-size: 15px; color: #c8c8c8; font-family: 'Noto Serif SC', 'Songti SC', serif; text-shadow: 0 0 8px rgba(0,0,0,0.9); max-height: 72vh; overflow-y: auto; padding: 10px 0; }
+  #introText .line { opacity: 0; margin: 8px 0; transition: opacity 1.2s; }
+  #introText .red { color: #ff2020; font-weight: bold; font-size: 20px; }
+  #introText .small { font-size: 13px; color: #888; }
+  #introSkip { position: absolute; bottom: 8%; right: 8%; padding: 12px 30px; background: rgba(255,255,255,0.08); color: #fff; border: 2px solid #888; border-radius: 8px; font-size: 15px; cursor: pointer; letter-spacing: 2px; }
+  #introSkip:active { background: rgba(255,255,255,0.25); }
+
+  #endingGallery { position: fixed; inset: 0; z-index: 300; background: url('./达成结局背景图.png') center/cover no-repeat; display: none; overflow-y: auto; padding: 20px 0 80px 0; box-sizing: border-box; }
+  #endingGallery .topBar { display: flex; align-items: center; padding: 0 20px; margin-bottom: 20px; position: sticky; top: 0; z-index: 5; }
+  #endingGallery .backBtn { font-size: 40px; color: #fff; cursor: pointer; padding: 10px 20px; text-shadow: 0 0 10px #000; }
+  #endingGallery .titleWrap { flex: 1; display: flex; justify-content: center; }
+  #endingGallery .titleWrap img { height: 70px; filter: drop-shadow(0 0 10px #000); }
+  #endingGallery .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 0 24px; max-width: 860px; margin: 0 auto; }
+  #endingGallery .item { cursor: pointer; }
+  #endingGallery .item img { width: 100%; display: block; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+  #endingGallery .hiddenItem { grid-column: span 2; display: flex; justify-content: center; margin-top: 20px; }
+  #endingGallery .hiddenItem .item { width: 100%; }
+  #endingGallery .fallback { color: #fff; font-size: 16px; text-align: center; padding: 24px; background: rgba(0,0,0,0.55); border-radius: 4px; }
+
+  #gameUI { position: fixed; inset: 0; z-index: 20; pointer-events: none; display: none; }
+  #gameUI > * { pointer-events: auto; }
+
+  #meatHud { position: absolute; top: 12px; left: 12px; width: 180px; height: 50px; display: flex; align-items: center; border-radius: 12px; overflow: hidden; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.6); background: transparent; }
+  #meatHud .meatIcon { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+  #meatHud .num { position: absolute; right: 20%; color: #ff3030; font-size: 22px; font-weight: bold; text-shadow: 0 0 6px #800; z-index: 2; }
+  #meatHud .max { position: absolute; right: 7%; color: #ddd; font-size: 16px; font-weight: bold; z-index: 2; }
+
+  #mistHud { position: absolute; top: 12px; right: 12px; background: rgba(10,10,15,0.75); padding: 8px 16px; border-radius: 12px; border: 1px solid #444; color: #fff; font-size: 14px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.6); pointer-events: none; }
+  #mistHud b { color: #4ade80; font-size: 20px; margin: 0 2px; }
+
+  #eatBtn { position: absolute; top: 12px; left: 210px; background: linear-gradient(180deg, #b00000, #600000); color: #fff; border: 2px solid #ff4444; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: bold; display: none; cursor: pointer; letter-spacing: 2px; box-shadow: 0 0 15px rgba(255,50,50,0.6); }
+
+  #staminaWrap { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 200px; height: 26px; display: none; overflow: hidden; border-radius: 13px; }
+  #staminaImg { width: 100%; height: 100%; object-fit: fill; display: block; }
+  #staminaMask { position: absolute; top: 0; right: 0; height: 100%; width: 0%; background: rgba(0,0,0,0.75); transition: width 0.15s; pointer-events: none; }
+  #staminaText { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-weight: bold; font-size: 13px; text-shadow: 0 0 4px #000; pointer-events: none; z-index: 2; }
+
+  #compassToggle { position: absolute; top: 56px; right: 12px; background: rgba(10,10,15,0.75); padding: 8px 14px; border-radius: 10px; border: 1px solid #444; cursor: pointer; color: #fff; font-size: 13px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.6); z-index: 30; }
+  #compassPanel { position: absolute; top: 100px; right: 12px; width: 170px; height: 170px; background: rgba(0,0,0,0.85); border-radius: 50%; border: 3px solid #666; overflow: hidden; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.8); z-index: 25; touch-action: none; }
+  #compassImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.7; pointer-events: none; }
+  #compassDots { position: absolute; inset: 0; pointer-events: none; }
+  .compassDot { position: absolute; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 6px currentColor; }
+
+  #dpad { position: absolute; left: 18px; bottom: 18px; display: grid; grid-template-columns: repeat(3, 62px); grid-template-rows: repeat(3, 62px); gap: 4px; }
+  #dpad button { background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.35); color: #fff; font-size: 24px; border-radius: 10px; padding: 0; touch-action: none; }
+  #dpad button.active { background: rgba(255,255,255,0.35); }
+  #dpad .btn-up    { grid-column: 2; grid-row: 1; }
+  #dpad .btn-left  { grid-column: 1; grid-row: 2; }
+  #dpad .btn-right { grid-column: 3; grid-row: 2; }
+  #dpad .btn-down  { grid-column: 2; grid-row: 3; }
+
+  #actionPanel { position: absolute; right: 22px; bottom: 22px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  #actionPanel button { width: 74px; height: 74px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); background: rgba(30,41,59,0.8); color: #fff; font-size: 15px; font-weight: bold; touch-action: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  #actionPanel button:active { transform: scale(0.95); }
+  #shootBtn { display: none; background: rgba(180,0,0,0.85) !important; border-color: #ff5555 !important; }
+  #runBtn { background: rgba(20,184,166,0.75) !important; border-color: #4ade80 !important; }
+  #runBtn.active { background: #14b8a6 !important; }
+
+  #crosshair { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%); pointer-events: none; display: none; }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.9); }
+  #crosshair::before { top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%); }
+  #crosshair::after { left: 50%; top: 0; height: 100%; width: 2px; transform: translateX(-50%); }
+
+  #pickupBtn { position: absolute; bottom: 130px; right: 130px; z-index: 25; padding: 14px 32px; background: rgba(255,60,60,.9); color: #fff; border: 2px solid #fff; border-radius: 40px; font-size: 16px; font-weight: bold; display: none; letter-spacing: 2px; }
+  #leaveBtn { position: absolute; bottom: 130px; left: 130px; z-index: 25; padding: 14px 32px; background: rgba(80,200,255,.9); color: #fff; border: 2px solid #fff; border-radius: 40px; font-size: 16px; font-weight: bold; display: none; letter-spacing: 2px; }
+  #gunPickupBtn { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); z-index: 25; padding: 14px 32px; background: rgba(255,200,60,.9); color: #000; border: 2px solid #fff; border-radius: 40px; font-size: 16px; font-weight: bold; display: none; letter-spacing: 2px; }
+  #attackElfBtn { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); z-index: 25; padding: 14px 32px; background: rgba(255,20,20,.95); color: #fff; border: 2px solid #fff; border-radius: 40px; font-size: 18px; font-weight: bold; display: none; letter-spacing: 2px; }
+
+  #jumpscare { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 150; background-size: cover; background-position: center; background-repeat: no-repeat; display: none; pointer-events: none; }
+
+  #cgLayer { position: fixed; inset: 0; z-index: 400; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+  #cgVideo { width: 100%; height: 100%; object-fit: contain; display: none; }
+  #cgImage { width: 100%; height: 100%; object-fit: contain; display: none; }
+  #cgText { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 82%; color: #fff; font-size: 19px; line-height: 1.9; text-align: center; display: none; font-family: 'Noto Serif SC', 'Songti SC', serif; pointer-events: none; text-shadow: 0 0 10px rgba(0,0,0,0.9); }
+  #deathOptions { position: absolute; bottom: 12%; display: none; flex-direction: column; gap: 15px; align-items: center; z-index: 10; }
+  #deathOptions button { padding: 14px 40px; background: rgba(255,255,255,0.08); color: #fff; border: 2px solid #fff; border-radius: 8px; font-size: 16px; font-weight: bold; letter-spacing: 2px; cursor: pointer; }
+
+  #keypadOverlay { position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; }
+  #keypad { background: #1a1a20; border: 2px solid #555; border-radius: 12px; padding: 20px; width: 280px; box-shadow: 0 0 40px rgba(0,0,0,0.9); }
+  #keypadTitle { color: #4ade80; font-size: 14px; text-align: center; margin-bottom: 10px; letter-spacing: 2px; }
+  #keypadInput { width: 100%; height: 52px; background: #000; color: #0f0; border: 1px solid #444; font-size: 26px; text-align: center; margin-bottom: 14px; letter-spacing: 8px; border-radius: 4px; box-sizing: border-box; font-family: monospace; }
+  .keypadRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .keypadRow button { height: 50px; font-size: 20px; background: #333; color: #fff; border: none; border-radius: 6px; font-weight: bold; }
+  .keypadRow button.ok { background: #14b8a6; }
+  .keypadRow button.clear { background: #dc2626; }
+
+  #devHiddenEntry { position: fixed; bottom: 0; right: 0; width: 40px; height: 40px; z-index: 350; background: transparent; cursor: pointer; }
+
+  #devPanel { display: none; position: fixed; top: 60px; right: 10px; z-index: 500; background: rgba(0,0,0,0.92); padding: 15px; border: 1px solid #555; border-radius: 8px; flex-direction: column; gap: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.9); min-width: 180px; touch-action: none; }
+  #devPanel .devTitle { color: #4ade80; font-size: 12px; margin-bottom: 5px; letter-spacing: 1px; border-bottom: 1px solid #444; padding-bottom: 5px; cursor: move; }
+  #devPanel button { padding: 10px 16px; background: #4c8bf5; color: #fff; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; }
+  #devPanel button.danger { background: #dc2626; }
+  #devPanel button.green { background: #14b8a6; }
+
+  #startScreen { position: fixed; inset: 0; z-index: 100; background: #000; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; box-sizing: border-box; }
+  #startScreen h2 { font-size: 32px; letter-spacing: 8px; color: #ff4a4a; text-shadow: 0 0 20px #800; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div id="rotateHint"><div class="ico">📱</div><div>请把手机横过来使用</div></div>
+
+<div id="mainMenu">
+  <img src="./开始游戏.png" class="menuBtn" id="btnStart" alt="开始游戏" onerror="this.outerHTML='<div class=&quot;menuFallback&quot; id=&quot;btnStart&quot;>开 始 游 戏</div>'">
+  <img src="./达成结局.png" class="menuBtn" id="btnGallery" alt="达成结局" onerror="this.outerHTML='<div class=&quot;menuFallback&quot; id=&quot;btnGallery&quot;>达 成 结 局</div>'">
+  <img src="./退出游戏.png" class="menuBtn" id="btnExit" alt="退出游戏" onerror="this.outerHTML='<div class=&quot;menuFallback&quot; id=&quot;btnExit&quot;>退 出 游 戏</div>'">
+</div>
+
+<div id="introScreen">
+  <div id="introText"></div>
+  <button id="introSkip">跳 过</button>
+</div>
+
+<div id="endingGallery">
+  <div class="topBar">
+    <div class="backBtn" id="btnBackFromGallery">←</div>
+    <div class="titleWrap"><img src="./达成结局.png" alt="达成结局"></div>
+    <div style="width: 60px;"></div>
+  </div>
+  <div class="grid" id="galleryGrid"></div>
+</div>
+
+<div id="startScreen">
+  <h2>游戏偷肉人</h2>
+  <div style="width:70%; max-width:420px; margin-top:20px;">
+    <div id="progressText" style="color:#4ade80; font-size:14px; margin-bottom:8px;">正在加载 0%</div>
+    <div style="width:100%; height:12px; background:#222; border:1px solid #444; border-radius:6px; overflow:hidden;">
+      <div id="progressBar" style="width:0%; height:100%; background:linear-gradient(90deg,#14b8a6,#4ade80); transition:width 0.2s;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="gameUI">
+  <div id="meatHud">
+    <img src="./肉计数器.png" class="meatIcon" onerror="this.style.display='none'">
+    <span class="num" id="meatCount">0</span>
+    <span class="max">/10</span>
+  </div>
+  <button id="eatBtn">食 用</button>
+  <div id="staminaWrap">
+    <img src="./体力值.png" id="staminaImg" onerror="this.style.display='none'">
+    <div id="staminaMask"></div>
+    <div id="staminaText">100 / 100</div>
+  </div>
+  <div id="mistHud">穿越迷雾 <b id="loopCount">1</b> 次</div>
+  <div id="compassToggle">🔮 罗盘</div>
+  <div id="compassPanel">
+    <img src="./罗盘.png" id="compassImg">
+    <div id="compassDots"></div>
+  </div>
+  <div id="dpad">
+    <button class="btn-up"    id="dpadUp">▲</button>
+    <button class="btn-left"  id="dpadLeft">◀</button>
+    <button class="btn-right" id="dpadRight">▶</button>
+    <button class="btn-down"  id="dpadDown">▼</button>
+  </div>
+  <div id="actionPanel">
+    <button id="shootBtn">射击</button>
+    <button id="runBtn">奔跑</button>
+    <button id="jumpBtn">跳</button>
+  </div>
+  <div id="crosshair"></div>
+  <button id="pickupBtn">拾 取 肉</button>
+  <button id="leaveBtn">离 开 森 林</button>
+  <button id="gunPickupBtn">拾 取 枪</button>
+  <button id="attackElfBtn">攻 击</button>
+</div>
+
+<div id="jumpscare"></div>
+
+<div id="cgLayer">
+  <video id="cgVideo" playsinline></video>
+  <img id="cgImage">
+  <div id="cgText"></div>
+  <div id="deathOptions">
+    <button id="btnRestart">重新开始</button>
+    <button id="btnMainMenu">返回主菜单</button>
+  </div>
+</div>
+
+<div id="keypadOverlay">
+  <div id="keypad">
+    <div id="keypadTitle">请输入密码</div>
+    <input id="keypadInput" readonly value="">
+    <div class="keypadRow">
+      <button onclick="pressKey('1')">1</button>
+      <button onclick="pressKey('2')">2</button>
+      <button onclick="pressKey('3')">3</button>
+      <button onclick="pressKey('4')">4</button>
+      <button onclick="pressKey('5')">5</button>
+      <button onclick="pressKey('6')">6</button>
+      <button onclick="pressKey('7')">7</button>
+      <button onclick="pressKey('8')">8</button>
+      <button onclick="pressKey('9')">9</button>
+      <button class="clear" onclick="pressKey('C')">C</button>
+      <button onclick="pressKey('0')">0</button>
+      <button class="ok" onclick="pressKey('OK')">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="devHiddenEntry"></div>
+
+<div id="devPanel">
+  <div class="devTitle" id="devPanelHandle">🛠 开发者模式</div>
+  <button class="green" id="devAddMeat">+1 肉</button>
+  <button class="green" id="devAdd10Meat">+10 肉</button>
+  <button id="devTestMonster">👹 测试怪物</button>
+  <button id="devTeleportSpawn">回到出生点</button>
+  <button id="devToggleGod">切换无敌</button>
+  <button class="danger" id="devClose">关闭面板</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ===================== 1. 基础场景 =====================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.Fog(0x000000, 2, 18);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = false;
+document.body.appendChild(renderer.domElement);
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+scene.add(ambientLight);
+const sunLight = new THREE.DirectionalLight(0xffffff, 0);
+sunLight.position.set(20, 30, 10);
+scene.add(sunLight);
+const flashlight = new THREE.SpotLight(0xffffff, 25, 25, Math.PI / 6, 0.5, 1);
+flashlight.castShadow = false;
+scene.add(flashlight);
+scene.add(flashlight.target);
+
+// 摄像机加入场景（闪现怪、手持枪挂载用）
+scene.add(camera);
+
+const MAP_SIZE = 60;
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+const EYE_HEIGHT = 2.2;
+const GROUND_TOP_Y = 0.7;
+const BIRTH_POINT = new THREE.Vector3(0, 0, 0);
+const BIRTH_RADIUS = 5;
+
+// ===================== 2. 游戏状态 =====================
+const GAME = {
+  state: 'menu',
+  isNight: true,
+  loopCount: 1,
+  worldType: 'normal',
+  isDevMode: false,
+  isGodMode: false,
+  gameEnded: false,
+  meatCount: 0,
+  meatEaten: 0,
+  hasEatenAny: false,
+  hasKilledElf: false,
+  hasGun: false,
+  hasKilledAllMonsters: false,
+  spiritTriggered: false,
+  giantMeatSpawned: false,
+  giantMeatSpawnTime: 0,
+  bloodWorldTriggered: false,
+  disorderTimer: null,
+  baseDirection: null,
+  collect10Mode: false,
+  frozen: false,
+  takenMeatLoops: {},
+};
+
+const MEAT_TARGET = 10;
+const PLAYER_RADIUS = 0.4;
+const PLAYER_HEIGHT = 1.8;
+const GRAVITY = -15;
+const WALK_SPEED = 4;
+const RUN_SPEED = 8;
+const DEV_SPEED = 8;
+const JUMP_V = 6.5;
+
+const player = new THREE.Group();
+player.position.set(0, 0.6, 0);
+scene.add(player);
+
+let velocityY = 0;
+let isGrounded = false;
+let isFlying = false;
+let isFlyUp = false;
+let isFlyDown = false;
+let stamina = 100;
+let isRunning = false;
+let runKeyDown = false;
+
+let yaw = 0, pitch = 0;
+let isDragging = false, prevX = 0, prevY = 0;
+
+// 键盘按键记录（供方向怪判断直行用）
+let keyW = false, keyA = false, keyS = false, keyD = false;
+
+function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+const meatPlan = [false];
+const _temp = [];
+for (let i = 0; i < 14; i++) _temp.push(true);
+for (let i = 0; i < 5; i++) _temp.push(false);
+shuffle(_temp);
+meatPlan.push(..._temp);
+
+function loopHasMeat(loop) {
+  if (loop > 15) return false;
+  if (loop - 1 < meatPlan.length) return meatPlan[loop - 1];
+  return false;
+}
+
+// ===================== 3. 模型数据 =====================
+const visualGroundData = [
+  { pos: {x: 20, y: 0, z: -24}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+  { pos: {x: -1, y: 0, z: -24}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+  { pos: {x: -21.7, y: 0, z: -24}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+  { pos: {x: -22, y: 0, z: 9}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+  { pos: {x: -1, y: 0, z: 9}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+  { pos: {x: 20, y: 0, z: 9}, rot: {x: 0, y: 0, z: 0}, scale: {x: 1.1, y: 0.6, z: 1} },
+];
+
+const groundData = [
+  { pos: {x: -28, y: 0.8, z: 30}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -28.1, y: 0.8, z: 14.3}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -28, y: 0.8, z: -1.4}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -28, y: 0.8, z: -16.7}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -8.3, y: 0.8, z: -16.7}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -8.3, y: 0.8, z: -1.5}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -8.3, y: 0.8, z: 14}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: -8.3, y: 0.8, z: 30}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.6,"radius":10}] },
+  { pos: {x: 12, y: 0.8, z: 30}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.8,"radius":10}] },
+  { pos: {x: 12, y: 0.8, z: 14}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.8,"radius":10}] },
+  { pos: {x: 12, y: 0.8, z: 0}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.8,"radius":10}] },
+  { pos: {x: 12, y: 0.8, z: -16}, colliders: [{"type":"box","localX":7.5,"localY":-0.8,"localZ":-6.5,"sizeX":20,"sizeY":1,"sizeZ":16.8,"radius":10}] }
+];
+
+const fogData = [
+  { pos: {x: -11.8, y: 2.5, z: 30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 12.3, y: 2.5, z: 30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 30, y: 2.5, z: 30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 30, y: 2.5, z: 11.3}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 30, y: 2.5, z: -12.7}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 30, y: 2.5, z: -30}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 30, y: 2.5, z: -30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: 6, y: 2.5, z: -30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: -18, y: 2.5, z: -30}, rot: {x: 0, y: 0, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: -30, y: 2.5, z: -30}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: -30, y: 2.2, z: -8}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} },
+  { pos: {x: -30, y: 2.2, z: 14.7}, rot: {x: 0, y: 90, z: 0}, scale: {x: 3.7, y: 2.5, z: 0.1} }
+];
+
+const treeData = {
+  "白桦树2平面.gltf": [
+    { pos: {x: -0.2, y: 0, z: -3}, rot: {x: 0, y: 99, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -3.7, y: 0, z: -0.5}, rot: {x: 0, y: 96, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 0, y: 0, z: -5.1}, rot: {x: 0, y: 62, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 2, y: 0, z: -5.1}, rot: {x: -180, y: 54, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 6.3, y: 0, z: -5.1}, rot: {x: 0, y: 8, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 8.3, y: 0, z: -5.3}, rot: {x: -180, y: -21, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 16.7, y: 0, z: -5.3}, rot: {x: 0, y: -69, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 18.7, y: 0, z: 8.3}, rot: {x: -180, y: -130, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -7, y: 0, z: 5.5}, rot: {x: 0, y: 117, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -5, y: 0, z: 16}, rot: {x: -180, y: 146, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -5, y: 0, z: -10.3}, rot: {x: -180, y: 53, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -9, y: 0, z: -4}, rot: {x: -180, y: 81, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -13.6, y: 0, z: 0.2}, rot: {x: -180, y: 95, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -15.7, y: 0, z: 8}, rot: {x: -180, y: 113, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 10.3, y: 0, z: -17.1}, rot: {x: 0, y: -13, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 16.7, y: 0, z: -17.1}, rot: {x: -180, y: -32, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -22.7, y: 0, z: -17.1}, rot: {x: 0, y: 62, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -20.7, y: 0, z: -4}, rot: {x: -180, y: 85, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -20.2, y: 0, z: 2}, rot: {x: 0, y: 97, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 12.3, y: 0, z: -23}, rot: {x: -180, y: -14, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 23.1, y: 0, z: -23}, rot: {x: 0, y: -37, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 3, y: 0, z: -23}, rot: {x: -180, y: 10, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 5, y: 0, z: -16.8}, rot: {x: 0, y: 7, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 5.3, y: 0, z: -13.3}, rot: {x: 0, y: 7, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 22.1, y: 0, z: -11.7}, rot: {x: -180, y: -56, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 4.7, y: 0, z: 10.7}, rot: {x: -180, y: 170, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 14.7, y: 0, z: 5}, rot: {x: 0, y: -130, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -4.8, y: 0, z: 7}, rot: {x: 0, y: 126, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -17, y: 0, z: 15.3}, rot: {x: -180, y: 125, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -15, y: 0, z: 15.3}, rot: {x: 0, y: 128, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 22.3, y: 0, z: 5.3}, rot: {x: 0, y: -114, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 15.7, y: 0, z: -26}, rot: {x: -180, y: -20, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 5, y: 0, z: -27.1}, rot: {x: 0, y: 4, z: 0}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -8.7, y: 0, z: -27}, rot: {x: -180, y: 31, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -25.8, y: 0, z: 9.3}, rot: {x: -180, y: 108, z: -180}, scale: {x: 1, y: 1.6, z: 1}, colliders: [{"type":"circle","localX":0,"localY":1.1,"localZ":0,"sizeX":0.5,"sizeY":2,"sizeZ":0.5,"radius":0.5}] }
+  ],
+  "桦树1平面.gltf": [
+    { pos: {x: -2, y: 0, z: -21.3}, rot: {x: 0, y: 24, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -11.4, y: 0, z: -21.3}, rot: {x: 0, y: 43, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -17, y: 0, z: -26.5}, rot: {x: 180, y: 44, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -26.7, y: 0, z: -26.5}, rot: {x: 0, y: 53, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -17.7, y: 0, z: -11.6}, rot: {x: 0, y: 68, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -28.7, y: 0, z: -4.8}, rot: {x: 0, y: 85, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -26.7, y: 0, z: 6.3}, rot: {x: 0, y: 103, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -24.7, y: 0, z: 19.8}, rot: {x: 0, y: 124, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -22.7, y: 0, z: 29.2}, rot: {x: 0, y: 136, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -15, y: 0, z: 27.4}, rot: {x: 180, y: 143, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -2.7, y: 0, z: 25.4}, rot: {x: 0, y: 161, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 10.4, y: 0, z: 22}, rot: {x: 180, y: -171, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 27.3, y: 0, z: 23}, rot: {x: 0, y: -140, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 21.8, y: 0, z: 23}, rot: {x: 180, y: -149, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 23.8, y: 0, z: 14.8}, rot: {x: 0, y: -134, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 26, y: 0, z: -4.3}, rot: {x: 180, y: -82, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: -18.3, y: 0, z: -3.7}, rot: {x: 180, y: 85, z: 180}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] },
+    { pos: {x: 5.7, y: 0, z: 21.7}, rot: {x: 0, y: 177, z: 0}, scale: {x: 1, y: 2.3, z: 1}, colliders: [{"type":"circle","localX":-0.2,"localY":3,"localZ":0,"sizeX":0.5,"sizeY":4.9,"sizeZ":0.5,"radius":0.5}] }
+  ]
+};const grassData = {
+  "长的草平面.gltf": [
+    { pos: {x: 2.3, y: 0, z: -12.9}, rot: {x: 0, y: 22, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 4.3, y: 0, z: -10}, rot: {x: 0, y: 17, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 6.3, y: 0, z: -10}, rot: {x: 0, y: 4, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 8.3, y: 0, z: -13.3}, rot: {x: 0, y: -7, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 10.3, y: 0, z: -3.8}, rot: {x: 0, y: -57, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 12.3, y: 0, z: -8}, rot: {x: 180, y: -40, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 14.3, y: 0, z: 21}, rot: {x: 0, y: -162, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 16.3, y: 0, z: 13.5}, rot: {x: 180, y: -148, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -14.5, y: 0, z: 13.5}, rot: {x: 0, y: 125, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 4.3, y: 0, z: 13.5}, rot: {x: 180, y: 170, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 6.3, y: 0, z: 7.7}, rot: {x: 0, y: 177, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -10.3, y: 0, z: -7.7}, rot: {x: 180, y: 70, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -8.3, y: 0, z: 17}, rot: {x: 180, y: 141, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -6.3, y: 0, z: 3}, rot: {x: 0, y: 109, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -4.3, y: 0, z: -5.7}, rot: {x: 180, y: 69, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 14.3, y: 0, z: -10}, rot: {x: 0, y: -41, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 16.3, y: 0, z: -7.7}, rot: {x: 52, y: -57, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 18.3, y: 0, z: -19.7}, rot: {x: 0, y: -32, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 20.3, y: 0, z: -8}, rot: {x: 180, y: -64, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 8.3, y: 0, z: 7.7}, rot: {x: -180, y: -171, z: -180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 10.3, y: 0, z: 7.7}, rot: {x: 0, y: -160, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 18.3, y: 0, z: 13.5}, rot: {x: 0, y: -143, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 20.3, y: 0, z: 13.5}, rot: {x: 180, y: -138, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 22.3, y: 0, z: 13.5}, rot: {x: 0, y: -134, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 24.3, y: 0, z: 13.5}, rot: {x: 180, y: -131, z: 180}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 20.3, y: 0, z: -16.3}, rot: {x: 0, y: -42, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 22.3, y: 0, z: 4.7}, rot: {x: 0, y: -112, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 22.3, y: 0, z: -3.7}, rot: {x: 0, y: -82, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 10.2, y: 0, z: -21.9}, rot: {x: 0, y: -9, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 4.3, y: 0, z: -24.4}, rot: {x: 0, y: 6, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 4.5, y: 0, z: -20.8}, rot: {x: 0, y: 7, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -4.6, y: 0, z: -17.4}, rot: {x: 0, y: 36, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -12.6, y: 0, z: -17.1}, rot: {x: 0, y: 51, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -20.6, y: 0, z: -15.3}, rot: {x: 0, y: 63, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -23, y: 0, z: -22.2}, rot: {x: 0, y: 55, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -23.7, y: 0, z: -30}, rot: {x: 0, y: 47, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -28.9, y: 0, z: -25.8}, rot: {x: 0, y: 56, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -15.7, y: 0, z: -28.5}, rot: {x: 0, y: 40, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -1.2, y: 0, z: -28.5}, rot: {x: 0, y: 17, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 12, y: 0, z: -29}, rot: {x: 0, y: -11, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 23.6, y: 0, z: -28.3}, rot: {x: 0, y: -32, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 29.3, y: 0, z: -20}, rot: {x: 0, y: -51, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 27.1, y: 0, z: -12.9}, rot: {x: 0, y: -61, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 27.9, y: 0, z: 0.3}, rot: {x: 0, y: -95, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 27.9, y: 0, z: 7.8}, rot: {x: 0, y: -114, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 27.8, y: 0, z: 16.7}, rot: {x: 0, y: -131, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 24.4, y: 0, z: 24.1}, rot: {x: 0, y: -146, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 19.8, y: 0, z: 25.1}, rot: {x: 0, y: -154, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 10.6, y: 0, z: 25.7}, rot: {x: 0, y: -172, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 0.6, y: 0, z: 26.4}, rot: {x: 0, y: 167, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -5.6, y: 0, z: 21.1}, rot: {x: 0, y: 151, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 0, y: 0, z: 15.9}, rot: {x: 0, y: 159, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -3.2, y: 0, z: 13.6}, rot: {x: 0, y: 147, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -0.1, y: 0, z: 7.4}, rot: {x: 0, y: 142, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 3, y: 0, z: 2.8}, rot: {x: 0, y: 139, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 1.4, y: 0, z: -3.2}, rot: {x: 0, y: 73, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: 5.2, y: 0, z: -4.1}, rot: {x: 0, y: 32, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -7, y: 0, z: -3.1}, rot: {x: 0, y: 84, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -13.1, y: 0, z: 3.3}, rot: {x: 0, y: 104, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -8.6, y: 0, z: 7.9}, rot: {x: 0, y: 121, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -12.6, y: 0, z: 16.6}, rot: {x: 0, y: 133, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -9.4, y: 0, z: 24.7}, rot: {x: 0, y: 148, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -26.1, y: 0, z: 24.1}, rot: {x: 0, y: 128, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -22.5, y: 0, z: 12.8}, rot: {x: 0, y: 116, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -21.8, y: 0, z: 6.6}, rot: {x: 0, y: 106, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -16.9, y: 0, z: 2.8}, rot: {x: 0, y: 100, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -24.2, y: 0, z: -5.3}, rot: {x: 0, y: 83, z: 0}, scale: {x: 1, y: 1, z: 1} },
+    { pos: {x: -26.3, y: 0, z: -13.9}, rot: {x: 0, y: 70, z: 0}, scale: {x: 1, y: 1, z: 1} }
+  ],
+  "草1平面.gltf": [
+    { pos: {x: 12.7, y: 0, z: -17.2}, rot: {x: 0, y: -20, z: 0}, scale: {x: 1, y: 1, z: 1} }
+  ]
+};
+
+const BLOOD_WORLD_MAP = {
+  '立方体.gltf': '立方体（血地）.gltf',
+  '白桦树2平面.gltf': '血桦树2平面.gltf',
+  '桦树1平面.gltf': '血桦树1平面.gltf',
+  '长的草平面.gltf': '血长的草平面.gltf',
+  '草1平面.gltf': '血长的草平面.gltf',
+};
+
+const spawnMarkerData = {
+  file: '标志物.glb',
+  pos: { x: 0.5, y: 2.4, z: -4 },
+  rot: { x: 0, y: 0, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+  colliders: [{ type: 'box', localX: -0.1, localY: 0, localZ: -0.1, sizeX: 2, sizeY: 4.2, sizeZ: 0.2, radius: 1 }]
+};
+
+const cabinData = {
+  file: '更简的木屋.gltf',
+  pos: { x: -14.7, y: 0.3, z: 28.4 },
+  rot: { x: 0, y: 0, z: 0 },
+  scale: { x: 1.3, y: 1.35, z: 1.35 },
+  colliders: [
+    { type: 'box', localX: -2.9, localY: 1.1, localZ: -2.7, sizeX: 0.35, sizeY: 2.6, sizeZ: 4.0, radius: 2.0 },
+    { type: 'box', localX: 1.5, localY: 1.1, localZ: -2.7, sizeX: 0.35, sizeY: 2.6, sizeZ: 4.0, radius: 0.5 },
+    { type: 'box', localX: -0.7, localY: 1.4, localZ: -4.2, sizeX: 3.7, sizeY: 2.3, sizeZ: 0.2, radius: 1.85 },
+    { type: 'box', localX: -1.5, localY: 0.2, localZ: -3.85, sizeX: 1.65, sizeY: 1.0, sizeZ: 1.0, radius: 0.8 },
+    { type: 'box', localX: -1.8, localY: 1.2, localZ: -1.05, sizeX: 3.0, sizeY: 3.0, sizeZ: 0.25, radius: 1.5 }
+  ]
+};
+
+const gunData = {
+  file: '枪.glb',
+  pos: { x: -16, y: 1.3, z: 25 },
+  rot: { x: 0, y: 78, z: 82 },
+  scale: { x: 1, y: 1, z: 1 }
+};
+
+const MONSTER_DATA = {
+  '巴迪怪.gltf': { scale: 1 },
+  '方向怪.gltf': { scale: 1 },
+  '巨肉.gltf': { scale: 1 },
+  '推人怪.gltf': { scale: 1.3, scaleY: 1.2 },
+  '伪装小怪平面.gltf': { scale: 1 },
+  '观察怪平面.gltf': { scale: 1 },
+  '观察怪Max平面.gltf': { scale: 1 },
+  '精灵平面.gltf': { scale: 1 },
+};
+
+// ===================== 4. 全局容器 =====================
+let groundColliders = [];
+const modelObjects = [];
+const activeMonsters = [];
+const activeMeat = [];
+const meatTemplates = [];
+const flashTemplates = { lr: null, charge: null };
+let spawnMarker = null;
+let cabinObject = null;
+let gunObject = null;
+let heldGunModel = null;
+const activeFlashGhosts = [];
+
+let nextJumpscareTime = 0;
+let nextFlashTime = 0;
+let nextPushTime = 0;
+let giantMeatObj = null;
+let giantMeatStartTime = 0;
+let bloodWorldActivated = false;
+let elfObject = null;
+let elfFoundMeat = false;
+let elfMeatPos = null;
+let attackElfAvailable = false;
+
+const AUDIO = {
+  environment: null, disorder: null, giantWalk: null, pushLoop: null,
+  flashAll: null, ghostAll: null, badi: null, direc: null, elfScream: null, gunShot: null,
+};
+
+let loaded = false;
+let audioUnlocked = false;
+
+// ===================== 5. 音频系统 =====================
+function initAudio() {
+  AUDIO.environment = new Audio('./环境音（1分32秒）.ogg');
+  AUDIO.environment.loop = true;
+  AUDIO.environment.volume = 0.35;
+
+  AUDIO.disorder = new Audio('./乱频（9s）.ogg');
+  AUDIO.disorder.loop = true;
+  AUDIO.disorder.volume = 0.9;
+
+  AUDIO.giantWalk = new Audio('./巨肉行走声（循环）.ogg');
+  AUDIO.giantWalk.loop = true;
+  AUDIO.giantWalk.volume = 0.7;
+
+  AUDIO.pushLoop = new Audio('./推人怪（循环）.ogg');
+  AUDIO.pushLoop.loop = true;
+  AUDIO.pushLoop.volume = 0.6;
+
+  AUDIO.flashAll = new Audio('./闪现怪（所有）叫.ogg');
+  AUDIO.flashAll.volume = 0.9;
+
+  AUDIO.ghostAll = new Audio('./所有贴图鬼叫.ogg');
+  AUDIO.ghostAll.volume = 0.9;
+
+  AUDIO.badi = new Audio('./巴迪怪叫声（5s循环）.ogg');
+  AUDIO.badi.loop = true;
+  AUDIO.badi.volume = 0.7;
+
+  AUDIO.direc = new Audio('./方向怪叫.ogg');
+  AUDIO.direc.volume = 0.9;
+
+  AUDIO.elfScream = new Audio('./小精灵惨叫.ogg');
+  AUDIO.elfScream.volume = 1.0;
+
+  AUDIO.gunShot = new Audio('./枪声.ogg');
+  AUDIO.gunShot.volume = 0.8;
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  Object.keys(AUDIO).forEach(k => {
+    if (AUDIO[k]) {
+      AUDIO[k].muted = true;
+      AUDIO[k].play().then(() => {
+        AUDIO[k].pause();
+        AUDIO[k].currentTime = 0;
+        AUDIO[k].muted = false;
+      }).catch(() => { AUDIO[k].muted = false; });
+    }
+  });
+}
+
+function playAudio(name, reset = false) {
+  if (!AUDIO[name]) return;
+  if (reset) AUDIO[name].currentTime = 0;
+  AUDIO[name].play().catch(() => {});
+}
+
+function stopAudio(name) {
+  if (!AUDIO[name]) return;
+  AUDIO[name].pause();
+  AUDIO[name].currentTime = 0;
+}
+
+function stopAllAudio() {
+  Object.keys(AUDIO).forEach(k => {
+    if (AUDIO[k]) {
+      AUDIO[k].pause();
+      AUDIO[k].currentTime = 0;
+    }
+  });
+}
+
+function playDisorder() {
+  if (!AUDIO.disorder) return;
+  playAudio('disorder', true);
+  if (GAME.disorderTimer) clearTimeout(GAME.disorderTimer);
+  GAME.disorderTimer = setTimeout(() => {
+    stopAudio('disorder');
+    GAME.disorderTimer = null;
+  }, 20000);
+}
+
+// ===================== 6. 材质处理 =====================
+function applyMatteMaterial(root) {
+  root.traverse(child => {
+    if (child.isMesh) {
+      child.castShadow = false;
+      child.receiveShadow = false;
+      if (child.material) {
+        const applyMat = (mat) => {
+          mat.transparent = true;
+          mat.alphaTest = 0.5;
+          mat.side = THREE.DoubleSide;
+          if (mat.roughness !== undefined) mat.roughness = 1.0;
+          if (mat.metalness !== undefined) mat.metalness = 0.0;
+          mat.needsUpdate = true;
+        };
+        if (Array.isArray(child.material)) child.material.forEach(applyMat);
+        else applyMat(child.material);
+      }
+    }
+  });
+}
+
+// ===================== 7. 模型加载 =====================
+const gltfLoader = new GLTFLoader();
+
+function loadModelInstance(fileName, data, isGroundOrFog = false) {
+  return new Promise((resolve) => {
+    gltfLoader.load('./' + fileName, (gltf) => {
+      data.forEach((inst) => {
+        const clone = gltf.scene.clone(true);
+        clone.position.set(inst.pos.x, inst.pos.y, inst.pos.z);
+        if (inst.rot) clone.rotation.set(
+          THREE.MathUtils.degToRad(inst.rot.x),
+          THREE.MathUtils.degToRad(inst.rot.y),
+          THREE.MathUtils.degToRad(inst.rot.z)
+        );
+        if (inst.scale) clone.scale.set(inst.scale.x, inst.scale.y, inst.scale.z);
+        applyMatteMaterial(clone);
+        scene.add(clone);
+
+        const colliders = (inst.colliders || []).map(c => ({...c}));
+        modelObjects.push({
+          mesh: clone,
+          name: fileName.replace('.gltf', '').replace('.glb', ''),
+          file: fileName,
+          colliders: colliders,
+          isGroundOrFog: isGroundOrFog,
+          isSpawnMarker: false,
+          isCabin: false,
+        });
+      });
+      resolve();
+    }, undefined, (err) => {
+      console.warn('⚠️ 加载失败：' + fileName, err);
+      resolve();
+    });
+  });
+}
+
+function loadMeatTemplate() {
+  return new Promise(resolve => {
+    gltfLoader.load('./肉.gltf', gltf => {
+      const tpl = gltf.scene;
+      tpl.scale.set(0.8, 0.8, 0.8);
+      applyMatteMaterial(tpl);
+      const glow = new THREE.PointLight(0xff2040, 2.5, 4, 2);
+      tpl.add(glow);
+      meatTemplates.push(tpl);
+      console.log('✅ 肉模板加载完成');
+      resolve();
+    }, undefined, err => {
+      console.warn('⚠️ 肉.gltf 加载失败，用红球占位');
+      const geo = new THREE.SphereGeometry(0.4, 16, 12);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xc4182a, emissive: 0x8b0016, emissiveIntensity: 1.5, roughness: 1.0, metalness: 0.0 });
+      const tpl = new THREE.Mesh(geo, mat);
+      const glow = new THREE.PointLight(0xff2040, 2.5, 4, 2);
+      tpl.add(glow);
+      meatTemplates.push(tpl);
+      resolve();
+    });
+  });
+}
+
+function loadFlashTemplates() {
+  return new Promise(resolve => {
+    let count = 0;
+    const done = () => { if (++count >= 2) resolve(); };
+    gltfLoader.load('./闪过怪左到右.gltf', gltf => {
+      const t = gltf.scene; applyMatteMaterial(t); flashTemplates.lr = t; done();
+    }, undefined, () => { console.warn('闪过怪左到右加载失败'); done(); });
+    gltfLoader.load('./闪现鬼冲.gltf', gltf => {
+      const t = gltf.scene; applyMatteMaterial(t); flashTemplates.charge = t; done();
+    }, undefined, () => { console.warn('闪现鬼冲加载失败'); done(); });
+  });
+}
+
+function loadSpawnMarker() {
+  return new Promise(resolve => {
+    gltfLoader.load('./' + spawnMarkerData.file, gltf => {
+      const mesh = gltf.scene;
+      mesh.position.set(spawnMarkerData.pos.x, spawnMarkerData.pos.y, spawnMarkerData.pos.z);
+      mesh.rotation.set(
+        THREE.MathUtils.degToRad(spawnMarkerData.rot.x),
+        THREE.MathUtils.degToRad(spawnMarkerData.rot.y),
+        THREE.MathUtils.degToRad(spawnMarkerData.rot.z)
+      );
+      mesh.scale.set(spawnMarkerData.scale.x, spawnMarkerData.scale.y, spawnMarkerData.scale.z);
+      applyMatteMaterial(mesh);
+      mesh.visible = true;
+      scene.add(mesh);
+      spawnMarker = mesh;
+      modelObjects.push({
+        mesh: mesh,
+        name: '标志物',
+        file: spawnMarkerData.file,
+        colliders: spawnMarkerData.colliders.map(c => ({...c})),
+        isGroundOrFog: false,
+        isSpawnMarker: true,
+        isCabin: false,
+      });
+      console.log('✅ 出生点标志物加载完成');
+      resolve();
+    }, undefined, () => { console.warn('⚠️ 标志物.glb 加载失败'); resolve(); });
+  });
+}
+
+function loadCabin() {
+  return new Promise(resolve => {
+    gltfLoader.load('./' + cabinData.file, gltf => {
+      const mesh = gltf.scene;
+      mesh.position.set(cabinData.pos.x, cabinData.pos.y, cabinData.pos.z);
+      mesh.rotation.set(
+        THREE.MathUtils.degToRad(cabinData.rot.x),
+        THREE.MathUtils.degToRad(cabinData.rot.y),
+        THREE.MathUtils.degToRad(cabinData.rot.z)
+      );
+      mesh.scale.set(cabinData.scale.x, cabinData.scale.y, cabinData.scale.z);
+      applyMatteMaterial(mesh);
+      mesh.visible = false;
+      scene.add(mesh);
+      cabinObject = mesh;
+      modelObjects.push({
+        mesh: mesh,
+        name: '木屋',
+        file: cabinData.file,
+        colliders: cabinData.colliders.map(c => ({...c})),
+        isGroundOrFog: false,
+        isSpawnMarker: false,
+        isCabin: true,
+      });
+      console.log('✅ 木屋加载完成（已隐藏）');
+      resolve();
+    }, undefined, () => { console.warn('⚠️ 木屋加载失败'); resolve(); });
+  });
+}
+
+function loadGun() {
+  return new Promise(resolve => {
+    gltfLoader.load('./' + gunData.file, gltf => {
+      const mesh = gltf.scene;
+      mesh.position.set(gunData.pos.x, gunData.pos.y, gunData.pos.z);
+      mesh.rotation.set(
+        THREE.MathUtils.degToRad(gunData.rot.x),
+        THREE.MathUtils.degToRad(gunData.rot.y),
+        THREE.MathUtils.degToRad(gunData.rot.z)
+      );
+      mesh.scale.set(gunData.scale.x, gunData.scale.y, gunData.scale.z);
+      applyMatteMaterial(mesh);
+      mesh.visible = false;
+      scene.add(mesh);
+      gunObject = mesh;
+      console.log('✅ 枪加载完成（默认隐藏）');
+      resolve();
+    }, undefined, () => { console.warn('⚠️ 枪加载失败'); resolve(); });
+  });
+}
+
+const monsterTemplates = {};
+function loadMonsterTemplates() {
+  const keys = Object.keys(MONSTER_DATA);
+  return Promise.all(keys.map(key => new Promise(resolve => {
+    gltfLoader.load('./' + key, gltf => {
+      const t = gltf.scene;
+      applyMatteMaterial(t);
+      monsterTemplates[key] = t;
+      resolve();
+    }, undefined, () => { console.warn('⚠️ 怪物加载失败：' + key); resolve(); });
+  })));
+}
+
+// ===================== 8. 场景初始化 =====================
+let loadedCount = 0;
+const TOTAL_LOAD = 12;
+function updateProgress(delta = 1) {
+  loadedCount = Math.min(TOTAL_LOAD, loadedCount + delta);
+  const pct = Math.floor(loadedCount / TOTAL_LOAD * 100);
+  const bar = document.getElementById('progressBar');
+  const txt = document.getElementById('progressText');
+  if (bar) bar.style.width = pct + '%';
+  if (txt) txt.textContent = `正在加载 ${pct}%`;
+}
+
+async function loadRequiredScenes() {
+  const tasks = [];
+  tasks.push(loadModelInstance('立方体.gltf', visualGroundData, true).then(() => updateProgress()));
+
+  groundData.forEach((data) => {
+    data.colliders.forEach(col => {
+      groundColliders.push({
+        worldX: data.pos.x + col.localX,
+        worldY: data.pos.y + col.localY,
+        worldZ: data.pos.z + col.localZ,
+        sizeX: col.sizeX, sizeY: col.sizeY, sizeZ: col.sizeZ,
+        type: col.type, radius: col.radius
+      });
+    });
+  });
+
+  tasks.push(loadModelInstance('雾.gltf', fogData, true).then(() => updateProgress()));
+  for (const [fileName, data] of Object.entries(treeData)) {
+    tasks.push(loadModelInstance(fileName, data, false).then(() => updateProgress()));
+  }
+  for (const [fileName, data] of Object.entries(grassData)) {
+    tasks.push(loadModelInstance(fileName, data, false).then(() => updateProgress()));
+  }
+  tasks.push(loadSpawnMarker().then(() => updateProgress()));
+  tasks.push(loadMeatTemplate().then(() => updateProgress()));
+
+  await Promise.all(tasks);
+  console.log('✅ 必须场景加载完成！碰撞箱数量：', groundColliders.length);
+}
+
+async function loadLazyScenes() {
+  const tasks = [];
+  tasks.push(loadCabin());
+  tasks.push(loadGun());
+  tasks.push(loadFlashTemplates());
+  tasks.push(loadMonsterTemplates());
+  await Promise.all(tasks);
+  console.log('✅ 延迟场景加载完成');
+}
+
+async function initAllScenes() {
+  console.log('🚀 开始加载场景（并行）...');
+  await loadRequiredScenes();
+  loadLazyScenes();
+}// ===================== 9. 血世界切换 =====================
+async function switchToBloodWorld() {
+  if (bloodWorldActivated) return;
+  bloodWorldActivated = true;
+  GAME.worldType = 'blood';
+  console.log('🩸 切换到血肉世界...');
+
+  const loader = new GLTFLoader();
+  const toReplace = modelObjects.filter(m => BLOOD_WORLD_MAP[m.file]);
+
+  const groups = {};
+  toReplace.forEach(m => {
+    const targetFile = BLOOD_WORLD_MAP[m.file];
+    if (!groups[targetFile]) groups[targetFile] = [];
+    groups[targetFile].push(m);
+  });
+
+  for (const [targetFile, list] of Object.entries(groups)) {
+    await new Promise(resolve => {
+      loader.load('./' + targetFile, gltf => {
+        list.forEach(m => {
+          const newMesh = gltf.scene.clone(true);
+          newMesh.position.copy(m.mesh.position);
+          newMesh.rotation.copy(m.mesh.rotation);
+          newMesh.scale.copy(m.mesh.scale);
+          applyMatteMaterial(newMesh);
+          scene.remove(m.mesh);
+          scene.add(newMesh);
+          m.mesh = newMesh;
+          m.file = targetFile;
+        });
+        resolve();
+      }, undefined, () => { console.warn('血模型加载失败：' + targetFile); resolve(); });
+    });
+  }
+
+  scene.background = new THREE.Color(0x0a0000);
+  scene.fog = new THREE.Fog(0x0a0000, 2, 18);
+  console.log('✅ 血世界切换完成');
+}
+
+// ===================== 10. 碰撞检测（含缩放 + 包围盒重叠） =====================
+function checkCollision(px, py, pz) {
+  if (GAME.isDevMode && GAME.isGodMode) return { blocked: false, topY: null };
+  const playerTop = py + PLAYER_HEIGHT;
+  for (const col of groundColliders) {
+    const halfW = (col.sizeX || 2) / 2 + PLAYER_RADIUS;
+    const halfD = (col.sizeZ || 2) / 2 + PLAYER_RADIUS;
+    const halfH = (col.sizeY || 2) / 2;
+    const isOverlapX = (px > col.worldX - halfW && px < col.worldX + halfW);
+    const isOverlapZ = (pz > col.worldZ - halfD && pz < col.worldZ + halfD);
+    if (isOverlapX && isOverlapZ) {
+      const topY = col.worldY + halfH;
+      const bottomY = col.worldY - halfH;
+      if (py >= topY - 0.2 && py < topY + 0.5) return { blocked: true, topY: topY };
+      if (playerTop > bottomY && py < topY) return { blocked: true, topY: null };
+    }
+  }
+  for (const m of modelObjects) {
+    if (!m.colliders || m.colliders.length === 0) continue;
+    if (m.isCabin && (!cabinObject || !cabinObject.visible)) continue;
+    if (m.isSpawnMarker && (!spawnMarker || !spawnMarker.visible)) continue;
+    const sx = m.mesh.scale.x || 1;
+    const sy = m.mesh.scale.y || 1;
+    const sz = m.mesh.scale.z || 1;
+    for (const col of m.colliders) {
+      const colWorldX = m.mesh.position.x + (col.localX || 0) * sx;
+      const colWorldY = m.mesh.position.y + (col.localY || 0) * sy;
+      const colWorldZ = m.mesh.position.z + (col.localZ || 0) * sz;
+      const halfW = (col.sizeX || 2) * sx / 2 + PLAYER_RADIUS;
+      const halfD = (col.sizeZ || 2) * sz / 2 + PLAYER_RADIUS;
+      const halfH = (col.sizeY || 2) * sy / 2;
+      const isOverlapX = (px > colWorldX - halfW && px < colWorldX + halfW);
+      const isOverlapZ = (pz > colWorldZ - halfD && pz < colWorldZ + halfD);
+      if (isOverlapX && isOverlapZ) {
+        const topY = colWorldY + halfH;
+        const bottomY = colWorldY - halfH;
+        if (py >= topY - 0.3 && py < topY + 0.5) return { blocked: true, topY: topY };
+        if (playerTop > bottomY && py < topY) return { blocked: true, topY: null };
+      }
+    }
+  }
+  return { blocked: false, topY: null };
+}
+
+// ===================== 11. 输入控制 =====================
+let moveFwd = false, moveBwd = false, moveLeft = false, moveRight = false;
+
+function bindDpad(el, onDown, onUp) {
+  el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); el.classList.add('active'); onDown(); }, { passive: false });
+  el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); el.classList.remove('active'); onUp(); }, { passive: false });
+  el.addEventListener('touchcancel', () => { el.classList.remove('active'); onUp(); });
+  el.addEventListener('mousedown', e => { e.preventDefault(); el.classList.add('active'); onDown(); });
+  el.addEventListener('mouseup', e => { e.preventDefault(); el.classList.remove('active'); onUp(); });
+  el.addEventListener('mouseleave', () => { el.classList.remove('active'); onUp(); });
+}
+
+const onLookStart = (x, y) => { isDragging = true; prevX = x; prevY = y; };
+const onLookMove = (x, y) => {
+  if (!isDragging) return;
+  yaw -= (x - prevX) * 0.005;
+  pitch -= (y - prevY) * 0.005;
+  pitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, pitch));
+  prevX = x; prevY = y;
+};
+
+// ===================== 12. 肉系统 =====================
+function clearMeat() {
+  for (const m of activeMeat) scene.remove(m);
+  activeMeat.length = 0;
+}
+
+function clearAllMonsters() {
+  for (const m of activeMonsters) scene.remove(m);
+  activeMonsters.length = 0;
+  if (giantMeatObj) { scene.remove(giantMeatObj); giantMeatObj = null; }
+  if (elfObject) { scene.remove(elfObject); elfObject = null; }
+  stopAudio('badi'); stopAudio('giantWalk'); stopAudio('pushLoop');
+}
+
+function spawnMeatForLoop() {
+  clearMeat();
+  if (GAME.loopCount > 15) { console.log(`第 ${GAME.loopCount} 片：超过 15，无肉`); return; }
+  if (GAME.takenMeatLoops && GAME.takenMeatLoops[GAME.loopCount]) { console.log(`第 ${GAME.loopCount} 片：肉已拿过`); return; }
+  if (!loopHasMeat(GAME.loopCount)) { console.log(`第 ${GAME.loopCount} 片：本片无肉`); return; }
+  if (meatTemplates.length === 0) return;
+  const treePositions = [];
+  for (const [fileName, list] of Object.entries(treeData)) {
+    if (!fileName.includes('树')) continue;
+    // ⑦ 肉的生成位置远离边缘
+    for (const inst of list) {
+      if (Math.abs(inst.pos.x) < 24 && Math.abs(inst.pos.z) < 24) {
+        treePositions.push({ x: inst.pos.x, z: inst.pos.z });
+      }
+    }
+  }
+  if (treePositions.length === 0) return;
+  const tree = treePositions[Math.floor(Math.random() * treePositions.length)];
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 0.8 + Math.random() * 0.8;
+  const x = tree.x + Math.cos(angle) * dist;
+  const z = tree.z + Math.sin(angle) * dist;
+  const meat = meatTemplates[0].clone(true);
+  meat.position.set(x, GROUND_TOP_Y + 0.5, z);
+  meat.userData.baseY = GROUND_TOP_Y + 0.5;
+  meat.userData.bobPhase = Math.random() * Math.PI * 2;
+  meat.userData.isDecoy = false;
+  scene.add(meat);
+  activeMeat.push(meat);
+  console.log(`第 ${GAME.loopCount} 片：肉 @ (${x.toFixed(1)}, ${z.toFixed(1)})`);
+}
+
+let nearestMeat = null;
+
+function tryPickup() {
+  if (GAME.gameEnded || GAME.state !== 'playing') return;
+  if (nearestMeat) {
+    const idx = activeMeat.indexOf(nearestMeat);
+    if (idx !== -1) {
+      scene.remove(nearestMeat);
+      activeMeat.splice(idx, 1);
+      GAME.meatCount++;
+      GAME.takenMeatLoops[GAME.loopCount] = true;
+      document.getElementById('meatCount').textContent = GAME.meatCount;
+      document.getElementById('eatBtn').style.display = GAME.meatCount > 0 ? 'block' : 'none';
+      nearestMeat = null;
+      document.getElementById('pickupBtn').style.display = 'none';
+      console.log(`拾取！${GAME.meatCount}/10`);
+      if (GAME.loopCount >= 5 && GAME.loopCount <= 20) spawnBadi();
+      if (GAME.meatCount === 9 && !GAME.giantMeatSpawned) spawnGiantMeat();
+      if (GAME.meatCount >= 10) triggerCollect10Mode();
+    }
+  }
+}
+
+function tryEat() {
+  if (GAME.gameEnded || GAME.state !== 'playing') return;
+  if (GAME.meatCount <= 0) return;
+  GAME.meatCount--;
+  GAME.meatEaten++;
+  GAME.hasEatenAny = true;
+  document.getElementById('meatCount').textContent = GAME.meatCount;
+  document.getElementById('eatBtn').style.display = GAME.meatCount > 0 ? 'block' : 'none';
+  stamina = 100;
+  const staminaImgEl = document.getElementById('staminaImg');
+  if (staminaImgEl) staminaImgEl.src = './吃一块肉后体力值.png';
+  if (GAME.meatEaten >= 10) { triggerEnding('e2'); return; }
+  if (GAME.meatEaten >= 7) console.log('🩸 吃下第 7 块肉，怪不再攻击你...');
+}
+
+// ===================== 13. 贴脸怪 & 闪现鬼 =====================
+const jumpscareEl = document.getElementById('jumpscare');
+
+// ① 贴脸怪：硬控玩家 + 显示时间 900ms
+function triggerJumpscare() {
+  const idx = 1 + Math.floor(Math.random() * 5);
+  jumpscareEl.style.backgroundImage = `url('./贴脸怪${idx}.png')`;
+  jumpscareEl.style.display = 'block';
+  playAudio('ghostAll', true);
+  GAME.frozen = true;
+  setTimeout(() => {
+    jumpscareEl.style.display = 'none';
+    GAME.frozen = false;
+  }, 900);
+  nextJumpscareTime = performance.now() + 60 * 1000;
+}
+
+// ② 闪现怪：直接挂摄像机正前方 + y 下移 + 硬控 1s
+function spawnFlashGhost(type) {
+  let template = null;
+  if (type === 'lr') template = flashTemplates.lr;
+  else if (type === 'charge') template = flashTemplates.charge;
+  if (!template) return;
+  const ghost = template.clone(true);
+  camera.add(ghost);
+  ghost.position.set(0, -0.6, -2);
+  ghost.scale.set(1.5, 1.5, 1.5);
+  ghost.userData = { type: 'attached', life: 0, duration: 1.0 };
+  scene.add(camera);
+  activeFlashGhosts.push(ghost);
+  playAudio('flashAll', true);
+  GAME.frozen = true;
+  setTimeout(() => { GAME.frozen = false; }, 1000);
+  nextFlashTime = performance.now() + 80 * 1000;
+}
+
+function updateFlashGhosts(dt) {
+  for (let i = activeFlashGhosts.length - 1; i >= 0; i--) {
+    const g = activeFlashGhosts[i];
+    g.userData.life += dt;
+    if (g.userData.life >= g.userData.duration) {
+      if (g.parent) g.parent.remove(g);
+      activeFlashGhosts.splice(i, 1);
+    }
+  }
+}
+
+// ===================== 14. 巴迪怪 =====================
+// ⑨ 怪物限制在地图内
+function clampMonster(m) {
+  const H = 29;
+  if (m.position.x > H) m.position.x = H;
+  if (m.position.x < -H) m.position.x = -H;
+  if (m.position.z > H) m.position.z = H;
+  if (m.position.z < -H) m.position.z = -H;
+}
+
+function spawnBadi() {
+  if (!monsterTemplates['巴迪怪.gltf']) return;
+  const angle = Math.random() * Math.PI * 2;
+  const badi = monsterTemplates['巴迪怪.gltf'].clone(true);
+  badi.position.set(player.position.x + Math.cos(angle) * 20, GROUND_TOP_Y, player.position.z + Math.sin(angle) * 20);
+  badi.userData = { type: 'badi', speed: 6, life: 0 };
+  scene.add(badi);
+  activeMonsters.push(badi);
+  playAudio('badi', true);
+}
+
+function updateBadi(badi, dt) {
+  badi.userData.life += dt;
+  const dx = player.position.x - badi.position.x;
+  const dz = player.position.z - badi.position.z;
+  const dist = Math.hypot(dx, dz);
+  badi.rotation.y = Math.atan2(dx, dz);
+  if (dist < 1.5) { triggerDeath('badi'); return; }
+  if (dist > 0.1) {
+    badi.position.x += (dx / dist) * badi.userData.speed * dt;
+    badi.position.z += (dz / dist) * badi.userData.speed * dt;
+  }
+  const birthDist = Math.hypot(player.position.x - BIRTH_POINT.x, player.position.z - BIRTH_POINT.z);
+  if (birthDist < 3 && !bloodWorldActivated) {
+    scene.remove(badi);
+    const i = activeMonsters.indexOf(badi);
+    if (i !== -1) activeMonsters.splice(i, 1);
+    stopAudio('badi');
+  }
+  clampMonster(badi);
+}
+
+// ===================== 15. 观察怪 & Max =====================
+function spawnObserver(isMax = false) {
+  const key = isMax ? '观察怪Max平面.gltf' : '观察怪平面.gltf';
+  if (!monsterTemplates[key]) return;
+  const treePositions = [];
+  for (const [fileName, list] of Object.entries(treeData)) {
+    if (!fileName.includes('树')) continue;
+    for (const inst of list) {
+      const d = Math.hypot(inst.pos.x - player.position.x, inst.pos.z - player.position.z);
+      if (d > 4 && d < 15) treePositions.push({ x: inst.pos.x, z: inst.pos.z });
+    }
+  }
+  if (treePositions.length === 0) return;
+  const tree = treePositions[Math.floor(Math.random() * treePositions.length)];
+  const obs = monsterTemplates[key].clone(true);
+  obs.position.set(tree.x + (Math.random() - 0.5) * 2, GROUND_TOP_Y, tree.z + (Math.random() - 0.5) * 2);
+  const redGlow = new THREE.PointLight(0xff0000, 3, 8, 2);
+  obs.add(redGlow);
+  obs.userData = {
+    type: isMax ? 'observer_max' : 'observer',
+    lookTimer: 0,
+    triggered: false,
+    chargeFrom: null,
+    chargeTarget: null,
+    chargeSpeed: isMax ? 8 : 6,
+  };
+  scene.add(obs);
+  activeMonsters.push(obs);
+  console.log('👁 观察怪生成：' + (isMax ? 'Max' : '普通') + ' @ 距玩家 ' + Math.hypot(obs.position.x - player.position.x, obs.position.z - player.position.z).toFixed(1) + ' 米');
+}
+
+function updateObserver(obs, dt) {
+  const dx = camera.position.x - obs.position.x;
+  const dz = camera.position.z - obs.position.z;
+  obs.rotation.y = Math.atan2(dx, dz);
+
+  const camDir = new THREE.Vector3();
+  camera.getWorldDirection(camDir);
+  const toObs = new THREE.Vector3(dx, 0, dz).normalize();
+  const camDirH = new THREE.Vector3(camDir.x, 0, camDir.z).normalize();
+  const dot = camDirH.dot(toObs);
+  const dist = Math.hypot(dx, dz);
+  const isAimedAt = dot > 0.7 && dist < 30;
+
+  if (!obs.userData.triggered) {
+    if (obs.userData.type === 'observer' && dist < 5 && GAME.loopCount < 11) {
+      scene.remove(obs);
+      const i = activeMonsters.indexOf(obs);
+      if (i !== -1) activeMonsters.splice(i, 1);
+      return;
+    }
+    if (isAimedAt) {
+      obs.userData.lookTimer += dt;
+      if (obs.userData.lookTimer >= 1.5) {
+        obs.userData.triggered = true;
+        playAudio('flashAll', true);
+        if (obs.userData.type === 'observer') {
+          if (GAME.loopCount >= 11) {
+            obs.userData.chargeFrom = obs.position.clone();
+            obs.userData.chargeTarget = player.position.clone();
+            obs.userData.chargeSpeed = 6;
+          } else {
+            scene.remove(obs);
+            const i = activeMonsters.indexOf(obs);
+            if (i !== -1) activeMonsters.splice(i, 1);
+          }
+        } else {
+          obs.userData.chargeFrom = obs.position.clone();
+          obs.userData.chargeTarget = player.position.clone();
+          obs.userData.chargeSpeed = 8;
+        }
+      }
+    } else {
+      obs.userData.lookTimer = 0;
+    }
+  } else {
+    const target = obs.userData.chargeTarget;
+    if (!target) { scene.remove(obs); const i = activeMonsters.indexOf(obs); if (i !== -1) activeMonsters.splice(i, 1); return; }
+    const tx = target.x - obs.position.x;
+    const tz = target.z - obs.position.z;
+    const td = Math.hypot(tx, tz);
+    if (td < 0.3) {
+      if (obs.userData.type === 'observer_max' && Math.hypot(player.position.x - obs.position.x, player.position.z - obs.position.z) < 2) {
+        triggerDeath('observer_max');
+        return;
+      }
+      scene.remove(obs);
+      const i = activeMonsters.indexOf(obs);
+      if (i !== -1) activeMonsters.splice(i, 1);
+      return;
+    }
+    obs.position.x += (tx / td) * obs.userData.chargeSpeed * dt;
+    obs.position.z += (tz / td) * obs.userData.chargeSpeed * dt;
+    const pd = Math.hypot(obs.position.x - player.position.x, obs.position.z - player.position.z);
+    if (pd < 1.5) {
+      if (obs.userData.type === 'observer_max') { triggerDeath('observer_max'); return; }
+      else { scene.remove(obs); const i = activeMonsters.indexOf(obs); if (i !== -1) activeMonsters.splice(i, 1); return; }
+    }
+  }
+}
+
+// ===================== 16. 伪装小怪 =====================
+function spawnDecoy() {
+  if (!monsterTemplates['伪装小怪平面.gltf']) return;
+  if (meatTemplates.length === 0) return;
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 8 + Math.random() * 7;
+  const x = player.position.x + Math.cos(angle) * dist;
+  const z = player.position.z + Math.sin(angle) * dist;
+  const decoy = meatTemplates[0].clone(true);
+  decoy.position.set(x, GROUND_TOP_Y + 0.5, z);
+  decoy.userData = {
+    type: 'decoy', revealed: false, attacking: false,
+    attackTimer: 0, fleeTimer: 0, fleeDir: null,
+    baseY: GROUND_TOP_Y + 0.5, bobPhase: Math.random() * Math.PI * 2, life: 0,
+  };
+  scene.add(decoy);
+  activeMonsters.push(decoy);
+}
+
+function updateDecoy(decoy, dt) {
+  const dx = player.position.x - decoy.position.x;
+  const dz = player.position.z - decoy.position.z;
+  const dist = Math.hypot(dx, dz);
+  if (!decoy.userData.revealed) {
+    const t = performance.now() * 0.003;
+    decoy.position.y = decoy.userData.baseY + Math.sin(t + decoy.userData.bobPhase) * 0.15;
+    decoy.rotation.y += 0.02;
+    if (dist < 1) {
+      decoy.userData.revealed = true;
+      scene.remove(decoy);
+      const realDecoy = monsterTemplates['伪装小怪平面.gltf'].clone(true);
+      realDecoy.position.set(decoy.position.x, GROUND_TOP_Y, decoy.position.z);
+      realDecoy.userData = { type: 'decoy', revealed: true, attacking: true, attackTimer: 0, fleeTimer: 0, fleeDir: null, life: 0 };
+      scene.add(realDecoy);
+      const idx = activeMonsters.indexOf(decoy);
+      if (idx !== -1) activeMonsters.splice(idx, 1);
+      activeMonsters.push(realDecoy);
+      stamina = Math.max(0, stamina - 20);
+      playDisorder();
+    }
+    return;
+  }
+  if (decoy.userData.attacking) {
+    const adx = player.position.x - decoy.position.x;
+    const adz = player.position.z - decoy.position.z;
+    const ad = Math.hypot(adx, adz);
+    decoy.rotation.y = Math.atan2(adx, adz);
+    if (ad > 0.1) {
+      decoy.position.x += (adx / ad) * 8 * dt;
+      decoy.position.z += (adz / ad) * 8 * dt;
+    }
+    decoy.userData.attackTimer += dt;
+    if (decoy.userData.attackTimer > 0.3) {
+      decoy.userData.attacking = false;
+      decoy.userData.fleeTimer = 0;
+      decoy.userData.fleeDir = new THREE.Vector3(-adz / (ad || 1), 0, adx / (ad || 1));
+    }
+  } else {
+    decoy.userData.fleeTimer += dt;
+    if (decoy.userData.fleeDir) {
+      decoy.position.x += decoy.userData.fleeDir.x * 3 * dt;
+      decoy.position.z += decoy.userData.fleeDir.z * 3 * dt;
+    }
+    if (decoy.userData.fleeTimer > 2) { scene.remove(decoy); const i = activeMonsters.indexOf(decoy); if (i !== -1) activeMonsters.splice(i, 1); }
+  }
+}
+
+// ===================== 17. 方向怪 =====================
+let lastPlayerPos = new THREE.Vector3();
+let straightTimer = 0;
+
+// ⑧ 方向怪：无限制（去掉圈数限制和冷却）
+function checkStraightWalk(dt) {
+  const dx = player.position.x - lastPlayerPos.x;
+  const dz = player.position.z - lastPlayerPos.z;
+  const dist = Math.hypot(dx, dz);
+  lastPlayerPos.copy(player.position);
+  if (dist > 0.05 && keyW && !keyA && !keyD && !keyS) {
+    straightTimer += dist;
+    if (straightTimer >= 30) {
+      straightTimer = 0;
+      spawnDirec();
+    }
+  } else if (dist < 0.01) {
+    // 静止不重置
+  } else {
+    straightTimer = 0;
+  }
+}
+
+function spawnDirec() {
+  if (!monsterTemplates['方向怪.gltf']) return;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const direc = monsterTemplates['方向怪.gltf'].clone(true);
+  direc.position.set(player.position.x + dir.x * 15, GROUND_TOP_Y, player.position.z + dir.z * 15);
+  direc.userData = { type: 'direc', phase: 'warning', phaseTimer: 0, warningDuration: 1.2, chargeFrom: null, chargeDir: null };
+  scene.add(direc);
+  activeMonsters.push(direc);
+  playAudio('direc', true);
+}
+
+function updateDirec(direc, dt) {
+  const dx = player.position.x - direc.position.x;
+  const dz = player.position.z - direc.position.z;
+  direc.rotation.y = Math.atan2(dx, dz);
+  direc.userData.phaseTimer += dt;
+  if (direc.userData.phase === 'warning') {
+    if (direc.userData.phaseTimer >= direc.userData.warningDuration) {
+      direc.userData.phase = 'charge';
+      direc.userData.phaseTimer = 0;
+      direc.userData.chargeFrom = direc.position.clone();
+      const d = Math.hypot(dx, dz);
+      direc.userData.chargeDir = new THREE.Vector3(dx / d, 0, dz / d);
+    }
+  } else if (direc.userData.phase === 'charge') {
+    const speed = 12;
+    direc.position.x += direc.userData.chargeDir.x * speed * dt;
+    direc.position.z += direc.userData.chargeDir.z * speed * dt;
+    const chargeDist = direc.position.distanceTo(direc.userData.chargeFrom);
+    if (Math.hypot(dx, dz) < 1.5) { triggerDeath('direc'); return; }
+    if (chargeDist >= 8) { scene.remove(direc); const i = activeMonsters.indexOf(direc); if (i !== -1) activeMonsters.splice(i, 1); }
+  }
+  clampMonster(direc);
+}
+
+// ===================== 18. 巨肉怪（240 秒） =====================
+function spawnGiantMeat() {
+  if (!monsterTemplates['巨肉.gltf']) return;
+  GAME.giantMeatSpawned = true;
+  GAME.giantMeatSpawnTime = performance.now();
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const dist = 20 + Math.random() * 10;
+  flickerFlashlight();
+  giantMeatObj = monsterTemplates['巨肉.gltf'].clone(true);
+  giantMeatObj.position.set(player.position.x - dir.x * dist, GROUND_TOP_Y, player.position.z - dir.z * dist);
+  giantMeatObj.userData = { type: 'giant', speed: 2.0, active: true };
+  scene.add(giantMeatObj);
+  activeMonsters.push(giantMeatObj);
+  stopAudio('environment');
+  playAudio('giantWalk', true);
+}
+
+function flickerFlashlight() {
+  let count = 0;
+  const interval = setInterval(() => {
+    flashlight.intensity = Math.random() > 0.5 ? 0 : 25;
+    count++;
+    if (count > 8) { clearInterval(interval); flashlight.intensity = 25; }
+  }, 100);
+}
+
+function updateGiantMeat(dt) {
+  if (!giantMeatObj) return;
+  const gm = giantMeatObj;
+  const elapsed = (performance.now() - GAME.giantMeatSpawnTime) / 1000;
+  gm.userData.speed = 2.0 + (elapsed / 240) * 6.0;
+  const dx = player.position.x - gm.position.x;
+  const dz = player.position.z - gm.position.z;
+  const d = Math.hypot(dx, dz);
+  if (d > 0.1) {
+    gm.position.x += (dx / d) * gm.userData.speed * dt;
+    gm.position.z += (dz / d) * gm.userData.speed * dt;
+    gm.rotation.y = Math.atan2(dx, dz);
+  }
+  if (d < 1.5) triggerDeath('giant');
+  clampMonster(gm);
+}
+
+// ===================== 19. 推人怪 =====================
+function spawnPusher() {
+  if (!monsterTemplates['推人怪.gltf']) return;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const pusher = monsterTemplates['推人怪.gltf'].clone(true);
+  pusher.scale.set(1.3, 1.2, 1);
+  pusher.position.set(player.position.x + dir.x * 10, GROUND_TOP_Y, player.position.z + dir.z * 10);
+  pusher.userData = { type: 'pusher', pushing: false, pushTimer: 0 };
+  scene.add(pusher);
+  activeMonsters.push(pusher);
+  playAudio('pushLoop', true);
+  nextPushTime = performance.now() + (60 + Math.random() * 30) * 1000;
+}
+
+function updatePusher(pusher, dt) {
+  const dx = player.position.x - pusher.position.x;
+  const dz = player.position.z - pusher.position.z;
+  const d = Math.hypot(dx, dz);
+  if (!pusher.userData.pushing) {
+    pusher.rotation.y = Math.atan2(dx, dz);
+    if (d > 1) {
+      const speed = 6;
+      pusher.position.x += (dx / d) * speed * dt;
+      pusher.position.z += (dz / d) * speed * dt;
+    } else {
+      pusher.userData.pushing = true;
+      pusher.userData.pushTimer = 0;
+    }
+    return;
+  }
+  let nearestMonster = null;
+  let nearestDist = Infinity;
+  for (const m of activeMonsters) {
+    if (m === pusher) continue;
+    if (!m.userData) continue;
+    if (m.userData.type === 'decoy' && !m.userData.revealed) continue;
+    if (m.userData.type === 'elf') continue;
+    const md = Math.hypot(m.position.x - player.position.x, m.position.z - player.position.z);
+    if (md < nearestDist) { nearestDist = md; nearestMonster = m; }
+  }
+  let targetX, targetZ;
+  if (nearestMonster) {
+    const tdx = player.position.x - nearestMonster.position.x;
+    const tdz = player.position.z - nearestMonster.position.z;
+    const td = Math.hypot(tdx, tdz) || 1;
+    targetX = nearestMonster.position.x + (tdx / td) * 20;
+    targetZ = nearestMonster.position.z + (tdz / td) * 20;
+  } else {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    targetX = player.position.x + dir.x * 20;
+    targetZ = player.position.z + dir.z * 20;
+  }
+  const pdx = targetX - player.position.x;
+  const pdz = targetZ - player.position.z;
+  const pd = Math.hypot(pdx, pdz);
+  if (pd < 0.5) {
+    scene.remove(pusher);
+    const i = activeMonsters.indexOf(pusher);
+    if (i !== -1) activeMonsters.splice(i, 1);
+    stopAudio('pushLoop');
+    return;
+  }
+  const pushSpeed = 6;
+  player.position.x += (pdx / pd) * pushSpeed * dt;
+  player.position.z += (pdz / pd) * pushSpeed * dt;
+  pusher.position.x = player.position.x + (pdx / pd) * 1;
+  pusher.position.z = player.position.z + (pdz / pd) * 1;
+  pusher.rotation.y = Math.atan2(-pdx, -pdz);
+  pusher.userData.pushTimer += dt;
+  if (pusher.userData.pushTimer > 10) {
+    scene.remove(pusher);
+    const i = activeMonsters.indexOf(pusher);
+    if (i !== -1) activeMonsters.splice(i, 1);
+    stopAudio('pushLoop');
+  }
+}
+
+// ===================== 20. 精灵 =====================
+function spawnElf() {
+  if (!monsterTemplates['精灵平面.gltf']) return;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  elfObject = monsterTemplates['精灵平面.gltf'].clone(true);
+  elfObject.position.set(player.position.x + dir.x * 3, GROUND_TOP_Y, player.position.z + dir.z * 3);
+  elfObject.userData = { type: 'elf', state: 'waiting', moveTarget: null };
+  scene.add(elfObject);
+  activeMonsters.push(elfObject);
+}
+
+function updateElf(dt) {
+  if (!elfObject) return;
+  const dx = camera.position.x - elfObject.position.x;
+  const dz = camera.position.z - elfObject.position.z;
+  elfObject.rotation.y = Math.atan2(dx, dz);
+  const dist = Math.hypot(player.position.x - elfObject.position.x, player.position.z - elfObject.position.z);
+  if (elfObject.userData.state === 'waiting') {
+    if (dist < 1) {
+      elfObject.userData.state = 'moving';
+      const treePositions = [];
+      for (const [fileName, list] of Object.entries(treeData)) {
+        if (!fileName.includes('树')) continue;
+        for (const inst of list) {
+          const d = Math.hypot(inst.pos.x - player.position.x, inst.pos.z - player.position.z);
+          if (d > 5 && d < 15) treePositions.push({ x: inst.pos.x, z: inst.pos.z });
+        }
+      }
+      if (treePositions.length > 0) {
+        const tree = treePositions[Math.floor(Math.random() * treePositions.length)];
+        elfObject.userData.moveTarget = new THREE.Vector3(tree.x + 1, GROUND_TOP_Y, tree.z + 1);
+        elfMeatPos = new THREE.Vector3(tree.x + 2, GROUND_TOP_Y + 0.5, tree.z + 1);
+      }
+    }
+  } else if (elfObject.userData.state === 'moving') {
+    if (elfObject.userData.moveTarget) {
+      const tx = elfObject.userData.moveTarget.x - elfObject.position.x;
+      const tz = elfObject.userData.moveTarget.z - elfObject.position.z;
+      const td = Math.hypot(tx, tz);
+      if (td < 0.5) {
+        elfObject.userData.state = 'found';
+        if (elfMeatPos && !elfFoundMeat) {
+          elfFoundMeat = true;
+          const meat = meatTemplates[0].clone(true);
+          meat.position.copy(elfMeatPos);
+          meat.userData.baseY = elfMeatPos.y;
+          meat.userData.bobPhase = 0;
+          meat.userData.isElfMeat = true;
+          scene.add(meat);
+          activeMeat.push(meat);
+        }
+        attackElfAvailable = true;
+        document.getElementById('attackElfBtn').style.display = 'block';
+      } else {
+        elfObject.position.x += (tx / td) * 4 * dt;
+        elfObject.position.z += (tz / td) * 4 * dt;
+      }
+    }
+  }
+}
+
+function killElf() {
+  if (!attackElfAvailable || !elfObject) return;
+  attackElfAvailable = false;
+  document.getElementById('attackElfBtn').style.display = 'none';
+  playAudio('elfScream', true);
+  playVideoCG('./杀精灵cg.mp4', () => {
+    if (elfObject) { scene.remove(elfObject); const i = activeMonsters.indexOf(elfObject); if (i !== -1) activeMonsters.splice(i, 1); elfObject = null; }
+    if (meatTemplates[0]) {
+      const meat = meatTemplates[0].clone(true);
+      meat.position.set(player.position.x, GROUND_TOP_Y + 0.5, player.position.z - 2);
+      meat.userData.baseY = GROUND_TOP_Y + 0.5;
+      meat.userData.bobPhase = 0;
+      meat.userData.isElfMeat = true;
+      scene.add(meat);
+      activeMeat.push(meat);
+    }
+    GAME.hasKilledElf = true;
+    document.getElementById('cgLayer').style.display = 'none';
+    document.getElementById('deathOptions').style.display = 'none';
+  });
+}
+
+// ===================== 21. 枪系统 =====================
+function pickupGun() {
+  if (GAME.hasGun) return;
+  GAME.hasGun = true;
+  if (gunObject) gunObject.visible = false;
+  document.getElementById('gunPickupBtn').style.display = 'none';
+  document.getElementById('shootBtn').style.display = 'flex';
+  document.getElementById('crosshair').style.display = 'block';
+  if (!heldGunModel && gunObject) {
+    heldGunModel = gunObject.clone(true);
+    heldGunModel.visible = true;
+    applyMatteMaterial(heldGunModel);
+    camera.add(heldGunModel);
+    heldGunModel.position.set(0.25, -0.25, -0.5);
+    heldGunModel.rotation.set(0, 0, 0);
+    heldGunModel.scale.set(0.5, 0.5, 0.5);
+    scene.add(camera);
+  }
+}
+
+function shootGun() {
+  if (!GAME.hasGun || GAME.gameEnded) return;
+  playAudio('gunShot', true);
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const intersects = raycaster.intersectObjects(activeMonsters, true);
+  if (intersects.length > 0) {
+    let hit = intersects[0].object;
+    let target = null;
+    for (const m of activeMonsters) {
+      let obj = hit;
+      while (obj) {
+        if (obj === m) { target = m; break; }
+        obj = obj.parent;
+      }
+      if (target) break;
+    }
+    if (target) {
+      scene.remove(target);
+      const i = activeMonsters.indexOf(target);
+      if (i !== -1) activeMonsters.splice(i, 1);
+      const attackable = activeMonsters.filter(m => m.userData && ['badi','observer','observer_max','direc','giant','pusher'].includes(m.userData.type));
+      if (attackable.length === 0) GAME.hasKilledAllMonsters = true;
+    }
+  }
+}
+
+// ===================== 22. 死亡触发 =====================
+function triggerDeath(type) {
+  if (GAME.gameEnded) return;
+  if (GAME.isDevMode && GAME.isGodMode) return;
+  GAME.gameEnded = true;
+  stopAllAudio();
+  let cg = '';
+  if (type === 'badi') cg = './巴迪怪秒杀CG.mp4';
+  else if (type === 'giant') cg = './巨肉秒杀CG.mp4';
+  else if (type === 'observer_max') cg = './观察者Max秒杀CG.mp4';
+  else if (type === 'direc') cg = './贴脸怪2.png';
+
+  if (cg.endsWith('.mp4')) {
+    playVideoCG(cg, () => showDeathOptions());
+  } else {
+    const cgLayer = document.getElementById('cgLayer');
+    cgLayer.style.display = 'flex';
+    const img = document.getElementById('cgImage');
+    img.src = cg;
+    img.style.display = 'block';
+    img.style.opacity = 0;
+    img.style.transition = 'opacity 0.5s';
+    setTimeout(() => { img.style.opacity = 1; setTimeout(() => { showDeathOptions(); }, 1500); }, 100);
+  }
+}
+
+function showDeathOptions() { document.getElementById('deathOptions').style.display = 'flex'; }
+
+// ===================== 23. 末日模式（随机 20 米） =====================
+// ⑩ Collect10 怪追时背景音乐循环
+function triggerCollect10Mode() {
+  if (GAME.collect10Mode) return;
+  GAME.collect10Mode = true;
+  for (let i = activeMonsters.length - 1; i >= 0; i--) { scene.remove(activeMonsters[i]); activeMonsters.splice(i, 1); }
+  stopAllAudio();
+  if (GAME.disorderTimer) { clearTimeout(GAME.disorderTimer); GAME.disorderTimer = null; }
+  AUDIO.disorder.currentTime = 0;
+  AUDIO.disorder.play().catch(() => {});
+  AUDIO.badi.play().catch(() => {});
+  AUDIO.giantWalk.play().catch(() => {});
+  AUDIO.pushLoop.play().catch(() => {});
+
+  const spawnAll = (key, type) => {
+    if (!monsterTemplates[key]) return;
+    const m = monsterTemplates[key].clone(true);
+    const angle = Math.random() * Math.PI * 2;
+    const r = 20;
+    m.position.set(player.position.x + Math.cos(angle) * r, GROUND_TOP_Y, player.position.z + Math.sin(angle) * r);
+    m.userData = { type: type, speed: 4, isCollect10: true };
+    scene.add(m);
+    activeMonsters.push(m);
+  };
+
+  spawnAll('巴迪怪.gltf', 'badi10');
+  spawnAll('方向怪.gltf', 'direc10');
+  spawnAll('巨肉.gltf', 'giant10');
+  spawnAll('推人怪.gltf', 'pusher10');
+  spawnAll('观察怪平面.gltf', 'observer10');
+  spawnAll('观察怪Max平面.gltf', 'observer_max10');
+  spawnAll('伪装小怪平面.gltf', 'decoy10');
+  nextJumpscareTime = performance.now() + 60 * 1000;
+}
+
+function updateCollect10Monsters(dt) {
+  for (let i = activeMonsters.length - 1; i >= 0; i--) {
+    const m = activeMonsters[i];
+    if (!m.userData || !m.userData.isCollect10) continue;
+    const dx = player.position.x - m.position.x;
+    const dz = player.position.z - m.position.z;
+    const d = Math.hypot(dx, dz);
+    m.rotation.y = Math.atan2(dx, dz);
+    if (d > 0.1) {
+      m.position.x += (dx / d) * m.userData.speed * dt;
+      m.position.z += (dz / d) * m.userData.speed * dt;
+    }
+    if (d < 1.5) { triggerCollect10Death(); return; }
+  }
+}
+
+function triggerCollect10Death() {
+  if (GAME.gameEnded) return;
+  if (GAME.isDevMode && GAME.isGodMode) return;
+  GAME.gameEnded = true;
+  GAME.state = 'ending';
+  stopAllAudio();
+  const cgLayer = document.getElementById('cgLayer');
+  const cgVideo = document.getElementById('cgVideo');
+  const cgImage = document.getElementById('cgImage');
+  const cgText = document.getElementById('cgText');
+  cgLayer.style.display = 'flex';
+  cgVideo.style.display = 'none';
+  cgImage.style.display = 'none';
+  cgText.style.display = 'block';
+  cgText.innerHTML = '<div style="color:#880000; font-size:22px;">你被追上……</div>';
+  setTimeout(() => {
+    cgText.innerHTML = '<div style="color:#fff; font-size:18px;">你带走了十块肉。<br><br>但它们也带走了你。</div>';
+    setTimeout(() => { showDeathOptions(); }, 3000);
+  }, 2000);
+}// ===================== 24. 玩家移动 =====================
+const clock = new THREE.Clock();
+
+function updatePlayerMovement(dt) {
+  if (GAME.gameEnded || GAME.state !== 'playing') return;
+  // ① 贴脸怪 / ② 闪现怪硬控
+  if (GAME.frozen) return;
+  // 被推人怪推动时不能操作
+  for (const m of activeMonsters) {
+    if (m.userData && m.userData.type === 'pusher' && m.userData.pushing) return;
+  }
+  let ix = 0, iz = 0;
+  if (moveFwd) iz += 1;
+  if (moveBwd) iz -= 1;
+  if (moveLeft) ix -= 1;
+  if (moveRight) ix += 1;
+  const inputLen = Math.hypot(ix, iz);
+  if (inputLen > 1) { ix /= inputLen; iz /= inputLen; }
+  const isMoving = ix !== 0 || iz !== 0;
+
+  isRunning = runKeyDown && moveFwd && stamina > 0 && !GAME.isDevMode;
+
+  if (!isMoving && !GAME.hasEatenAny && stamina < 100) stamina = Math.min(100, stamina + 0.25 * dt);
+
+  if (isMoving) {
+    const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    camDir.y = 0; camDir.normalize();
+    const right = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0, 1, 0)).normalize();
+    const moveDir = new THREE.Vector3().addScaledVector(camDir, iz).addScaledVector(right, ix).normalize();
+    let speed;
+    if (GAME.isDevMode) speed = DEV_SPEED;
+    else if (isRunning) speed = RUN_SPEED;
+    else if (stamina <= 0) speed = 1;
+    else speed = WALK_SPEED;
+    const step = speed * dt;
+
+    const oldX = player.position.x;
+    player.position.x += moveDir.x * step;
+    let cX = checkCollision(player.position.x, player.position.y, player.position.z);
+    if (cX.blocked && cX.topY === null) player.position.x = oldX;
+
+    const oldZ = player.position.z;
+    player.position.z += moveDir.z * step;
+    let cZ = checkCollision(player.position.x, player.position.y, player.position.z);
+    if (cZ.blocked && cZ.topY === null) player.position.z = oldZ;
+
+    if (isRunning) {
+      const moved = Math.hypot(player.position.x - oldX, player.position.z - oldZ);
+      stamina -= (moved / 10) * 5;
+      if (stamina <= 0) { stamina = 0; isRunning = false; }
+    }
+  }
+
+  if (GAME.isDevMode && isFlying) {
+    if (isFlyUp) velocityY = 6;
+    else if (isFlyDown) velocityY = -6;
+    else velocityY = 0;
+  } else {
+    velocityY += GRAVITY * dt;
+  }
+  player.position.y += velocityY * dt;
+
+  let cY = checkCollision(player.position.x, player.position.y, player.position.z);
+  if (cY.blocked && cY.topY !== null) {
+    player.position.y = cY.topY;
+    velocityY = 0;
+    isGrounded = true;
+    if (isFlying) isFlying = false;
+  } else if (player.position.y <= 0) {
+    player.position.y = 0;
+    velocityY = 0;
+    isGrounded = true;
+    if (isFlying) isFlying = false;
+  } else {
+    isGrounded = false;
+  }
+
+  if (GAME.hasEatenAny && GAME.meatEaten < 10) stamina = 100;
+}
+
+// ===================== 25. 穿雾 =====================
+function checkLoopPortal() {
+  if (GAME.gameEnded) return;
+  const HALF_MAP = MAP_SIZE / 2;
+  const INNER_OFFSET = 5;
+  let edge = null;
+  if (player.position.x > HALF_MAP) { edge = '+x'; }
+  else if (player.position.x < -HALF_MAP) { edge = '-x'; }
+  else if (player.position.z > HALF_MAP) { edge = '+z'; }
+  else if (player.position.z < -HALF_MAP) { edge = '-z'; }
+  if (!edge) return;
+
+  const oldPX = player.position.x;
+  const oldPZ = player.position.z;
+
+  const monsterOffsets = [];
+  for (const m of activeMonsters) {
+    monsterOffsets.push({
+      ref: m,
+      relX: m.position.x - oldPX,
+      relZ: m.position.z - oldPZ,
+    });
+  }
+  let giantOffset = null;
+  if (giantMeatObj) {
+    giantOffset = {
+      relX: giantMeatObj.position.x - oldPX,
+      relZ: giantMeatObj.position.z - oldPZ,
+    };
+  }
+
+  if (edge === '+x') player.position.x = -HALF_MAP + INNER_OFFSET;
+  else if (edge === '-x') player.position.x = HALF_MAP - INNER_OFFSET;
+  else if (edge === '+z') player.position.z = -HALF_MAP + INNER_OFFSET;
+  else if (edge === '-z') player.position.z = HALF_MAP - INNER_OFFSET;
+
+  const H = HALF_MAP - 1;
+
+  for (let i = activeMonsters.length - 1; i >= 0; i--) {
+    const m = activeMonsters[i];
+    if (m.userData && m.userData.type === 'badi' && !GAME.collect10Mode) {
+      scene.remove(m);
+      activeMonsters.splice(i, 1);
+      stopAudio('badi');
+      continue;
+    }
+    const offset = monsterOffsets.find(o => o.ref === m);
+    if (offset) {
+      m.position.x = player.position.x + offset.relX;
+      m.position.z = player.position.z + offset.relZ;
+      if (m.position.x > H) m.position.x = H;
+      if (m.position.x < -H) m.position.x = -H;
+      if (m.position.z > H) m.position.z = H;
+      if (m.position.z < -H) m.position.z = -H;
+    }
+  }
+
+  if (giantMeatObj && giantOffset) {
+    giantMeatObj.position.x = player.position.x + giantOffset.relX;
+    giantMeatObj.position.z = player.position.z + giantOffset.relZ;
+    if (giantMeatObj.position.x > H) giantMeatObj.position.x = H;
+    if (giantMeatObj.position.x < -H) giantMeatObj.position.x = -H;
+    if (giantMeatObj.position.z > H) giantMeatObj.position.z = H;
+    if (giantMeatObj.position.z < -H) giantMeatObj.position.z = -H;
+  }
+
+  changeLoop(edge);
+}
+
+function changeLoop(edge) {
+  const dirMap = { '+x': { x: 1, z: 0 }, '-x': { x: -1, z: 0 }, '+z': { x: 0, z: 1 }, '-z': { x: 0, z: -1 } };
+  const dir = dirMap[edge];
+  if (!GAME.baseDirection) { GAME.baseDirection = dir; GAME.loopCount = 2; }
+  else {
+    const dot = GAME.baseDirection.x * dir.x + GAME.baseDirection.z * dir.z;
+    if (dot > 0) GAME.loopCount++;
+    else if (dot < 0) GAME.loopCount = Math.max(1, GAME.loopCount - 1);
+  }
+  document.getElementById('loopCount').textContent = GAME.loopCount;
+  if (GAME.loopCount === 20) {
+    if (cabinObject) cabinObject.visible = true;
+    if (gunObject) gunObject.visible = true;
+  } else {
+    if (cabinObject) cabinObject.visible = false;
+    if (gunObject) gunObject.visible = false;
+  }
+  if (GAME.giantMeatSpawned && !bloodWorldActivated) switchToBloodWorld();
+  spawnMeatForLoop();
+  if (GAME.loopCount >= 1 && GAME.loopCount <= 20 && GAME.loopCount % 3 === 0) spawnObserver(false);
+  if (GAME.loopCount >= 10 && GAME.loopCount <= 20 && Math.random() < 0.4) spawnObserver(true);
+  if (GAME.loopCount >= 3 && GAME.loopCount <= 20) spawnDecoy();
+}
+
+// ===================== 26. 交互检测 =====================
+function updateInteractions() {
+  if (GAME.gameEnded || GAME.state !== 'playing') {
+    document.getElementById('pickupBtn').style.display = 'none';
+    document.getElementById('leaveBtn').style.display = 'none';
+    document.getElementById('gunPickupBtn').style.display = 'none';
+    return;
+  }
+  const distToBirth = Math.hypot(player.position.x - BIRTH_POINT.x, player.position.z - BIRTH_POINT.z);
+  const isAtBirth = distToBirth < BIRTH_RADIUS;
+  // ⑤ 出生点标志物：loopCount === 1 就一直显示
+  if (spawnMarker) {
+    spawnMarker.visible = (GAME.loopCount === 1);
+  }
+
+  let closestMeat = null, closestDist = Infinity;
+  const t = performance.now() * 0.003;
+  for (const meat of activeMeat) {
+    if (meat.userData.bobPhase !== undefined) {
+      meat.position.y = meat.userData.baseY + Math.sin(t + meat.userData.bobPhase) * 0.15;
+      meat.rotation.y += 0.02;
+    }
+    const dx = meat.position.x - player.position.x;
+    const dz = meat.position.z - player.position.z;
+    const d2 = dx * dx + dz * dz;
+    if (d2 < closestDist) { closestDist = d2; closestMeat = meat; }
+  }
+  if (closestMeat && closestDist < 1.8 * 1.8) {
+    nearestMeat = closestMeat;
+    document.getElementById('pickupBtn').style.display = 'block';
+  } else {
+    nearestMeat = null;
+    document.getElementById('pickupBtn').style.display = 'none';
+  }
+
+  // 离开键：靠近标志物 0.5 米
+  if (spawnMarker && spawnMarker.visible && GAME.loopCount === 1) {
+    const lx = spawnMarker.position.x - player.position.x;
+    const lz = spawnMarker.position.z - player.position.z;
+    const ld = Math.hypot(lx, lz);
+    document.getElementById('leaveBtn').style.display = (ld < 0.5) ? 'block' : 'none';
+  } else {
+    document.getElementById('leaveBtn').style.display = 'none';
+  }
+
+  if (GAME.loopCount === 20 && gunObject && gunObject.visible && !GAME.hasGun) {
+    const dx = gunObject.position.x - player.position.x;
+    const dz = gunObject.position.z - player.position.z;
+    const d2 = dx * dx + dz * dz;
+    document.getElementById('gunPickupBtn').style.display = (d2 < 1.5 * 1.5) ? 'block' : 'none';
+  } else {
+    document.getElementById('gunPickupBtn').style.display = 'none';
+  }
+
+  document.getElementById('eatBtn').style.display = (GAME.meatCount > 0) ? 'block' : 'none';
+
+  const staminaMask = document.getElementById('staminaMask');
+  const staminaText = document.getElementById('staminaText');
+  if (staminaMask) staminaMask.style.width = (100 - stamina) + '%';
+  if (staminaText) staminaText.textContent = Math.floor(stamina) + ' / 100';
+}
+
+// ===================== 27. 结局系统 =====================
+let unlockedEndings = JSON.parse(localStorage.getItem('unlockedEndings') || '[]');
+
+function tryLeave() {
+  if (GAME.gameEnded) return;
+  if (GAME.meatEaten >= 7 && GAME.meatEaten < 10) { triggerEnding('e7'); return; }
+  if (GAME.meatEaten >= 1 && GAME.meatEaten < 7) { triggerEnding('e1'); return; }
+  if (GAME.meatCount === 0 && GAME.meatEaten === 0) { triggerEnding('e4'); return; }
+  if (GAME.hasKilledElf) { triggerEnding('e5'); return; }
+  if (GAME.hasGun && GAME.hasKilledAllMonsters) { triggerEnding('e3'); return; }
+  if (GAME.meatCount >= 10 && !GAME.hasEatenAny) { triggerEnding('e6'); return; }
+  triggerEnding('e1');
+}
+
+const ENDING_TEXTS = {
+  e1: '“你拖着残缺的躯壳走出了森林。病痛确实消失了，因为那些坏死的部位，已经被新的血肉填满。”\n\n“你用这趟拼命的钱换来了安稳的生活，戒掉了肉，也戒掉了过往。可每当夜深人静，你总能在寂静中听见自己的身体里传来的、细微的咀嚼声。”\n\n“你确实活着。但你已经分不清，现在控制这具身体的，到底是你自己的意志，还是那块正在你心脏里跳动的肉。”',
+  e2: '“第十块肉滑入喉咙。没有痛苦，没有恐惧，甚至有一种前所未有的温暖和饱足感。”\n\n“你感觉自己的骨骼在融化，血液在变成红色的脂膏。你想抬起手，却发现手臂已经成了一滩蠕动的肉泥。你想尖叫，却发不出任何声音——因为你的声带已经被肉块替代。”\n\n“你的意识在最后几秒钟里，看着自己的视野被鲜红彻底吞噬。你不再是偷肉人，也不再是人。你成了这片森林里最新鲜、最诱人的诱饵。”\n\n“听……那是脚步声。又一个贪婪的灵魂走进了迷雾。”\n\n“去引导他吧。用你的香气告诉他，肉到底有多鲜美。”',
+  e3: '“枪火熄灭了。你站在空荡荡的森林里，周围是散落一地的怪物残骸。你背着十块肉走出迷雾，成了村子里的传奇。”\n\n“但你没有看到，那些倒下抽搐的怪物尸体，在雾中慢慢褪去了怪物的皮囊，露出了人类的遗骸——它们全都是死于同化的偷肉人。”\n\n“森林没有愤怒，它甚至非常慷慨地把枪借给了你。它借你的手淘汰了那些衰老、残缺的弱者，只留下最强壮、最完整的基因。”\n\n“你以为你杀死了森林。其实你只是它修剪老枝的剪刀。”',
+  e4: '“你两手空空地回到了出生点。村里的人嘲笑你是个胆小鬼，白跑一趟。你没有反驳，只是回到了自己破旧的小屋。”\n\n“你看着自己粗糙、布满刮痕、但干干净净的双手。没有肉质增生，没有蠕动，也没有奇怪的血管。”\n\n“你喝了一碗热粥，躺在了硬的木板床上。听着胸膛里那颗属于人类的心脏，平稳地跳动。”\n\n“你什么都没有带回来。但你完整地，带回了你自己。”',
+  e5: '“精灵消散在你的手下，变成了一块安静的、通红的肉。你带着两块肉逃出森林，换来了一笔足以逍遥半生的财富。”\n\n“这是森林里最慷慨的馈赠，也是你亲手犯下的最大罪恶。你买了大房子，洗了无数遍手，却总觉得指尖残留着血肉的温度。”\n\n“夜深人静时，你总会听到一声极轻、极绝望的叹息。那是这片森林里，唯一想救你的人，在死前最后的悲鸣。”\n\n“你赢了森林。你输给了自己。”',
+  e6: '“你带着十块完美无瑕的肉走出了森林。你没有吃下它们，你守住了作为人的底线，成为了一个绝对克制的传奇。”\n\n“村庄为你沸腾，绝症患者排队抢购，你获得了数不尽的财富与荣耀。但你没有听见，那些被肉治愈的身体里，正在响起细小、密集的蠕动声。”\n\n“你坐在堆满金币的餐桌前，看着留给自己的那一块肉。突然，一股无法抗拒的极度饥饿感涌上喉咙。”\n\n“你拿起肉，咬了下去。你终于明白，你带回的从来不是解药，而是这片森林入侵人类世界的、最完美的特洛伊木马。”',
+  e7: '“吃下第七块肉的那一刻，你感受到了前所未有的力量。怪物们停止了追逐，它们安静地注视着你。你兴奋地跑向出生点，以为终于可以带着这笔财富离开。”\n\n“可是没有出口。雾变成了实体的墙，无论你走向哪个方向，迎接你的只有一模一样的树木。”\n\n“你低头看自己的手。皮肤之下，鲜红的纹理正在跳动。你终于明白，它们不再攻击你，是因为你已经成了这片森林的一部分。”\n\n“你被剥夺了离开的资格。你失去了名字，失去了过去，只剩下一个本能——站在树旁，注视着下一个走进迷雾的偷肉人。”'
+};
+
+const ENDING_FILES = {
+  e1: './结局1残羹.mp4', e2: './结局2同化.mp4', e3: './结局3寂静森林.mp4',
+  e4: './结局4空手而归.png', e5: './结局5意外之喜.png', e6: './结局6满载而归.png', e7: './结局7归林.png'
+};
+
+async function triggerEnding(id) {
+  if (GAME.gameEnded) return;
+  GAME.gameEnded = true;
+  GAME.state = 'ending';
+  stopAllAudio();
+  if (!unlockedEndings.includes(id)) {
+    unlockedEndings.push(id);
+    localStorage.setItem('unlockedEndings', JSON.stringify(unlockedEndings));
+  }
+  const cgLayer = document.getElementById('cgLayer');
+  const cgText = document.getElementById('cgText');
+  const cgVideo = document.getElementById('cgVideo');
+  const cgImage = document.getElementById('cgImage');
+  cgLayer.style.display = 'flex';
+  cgVideo.style.display = 'none';
+  cgImage.style.display = 'none';
+  document.getElementById('deathOptions').style.display = 'none';
+  const url = ENDING_FILES[id];
+  const isVideo = url.endsWith('.mp4');
+  if (isVideo) {
+    await typeWriter(cgText, ENDING_TEXTS[id] || '');
+    cgText.style.display = 'none';
+    cgVideo.src = url;
+    cgVideo.style.display = 'block';
+    cgVideo.muted = true;
+    cgVideo.play().catch(() => {});
+    cgVideo.onended = () => { showEndingOptions(); };
+  } else {
+    await typeWriter(cgText, ENDING_TEXTS[id] || '');
+    cgText.style.display = 'none';
+    cgImage.src = url;
+    cgImage.onerror = () => { cgImage.style.display = 'none'; showEndingOptions(); };
+    cgImage.style.display = 'block';
+    cgImage.style.opacity = 0;
+    cgImage.style.transition = 'opacity 2s';
+    setTimeout(() => { cgImage.style.opacity = 1; setTimeout(() => { showEndingOptions(); }, 3000); }, 100);
+  }
+}
+
+function showEndingOptions() {
+  const opts = document.getElementById('deathOptions');
+  opts.innerHTML = '';
+  const btn1 = document.createElement('button');
+  btn1.textContent = '重新开始';
+  btn1.onclick = () => { location.reload(); };
+  const btn2 = document.createElement('button');
+  btn2.textContent = '返回主菜单';
+  btn2.onclick = () => {
+    GAME.state = 'menu';
+    document.getElementById('cgLayer').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'flex';
+    document.getElementById('gameUI').style.display = 'none';
+  };
+  opts.appendChild(btn1);
+  opts.appendChild(btn2);
+  opts.style.display = 'flex';
+}
+
+function typeWriter(el, text) {
+  return new Promise(resolve => {
+    el.style.display = 'block';
+    el.innerHTML = '';
+    el.style.color = '#fff';
+    let i = 0;
+    function type() {
+      if (i < text.length) {
+        el.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(type, 55);
+      } else setTimeout(resolve, 1200);
+    }
+    type();
+  });
+}
+
+function playVideoCG(url, onEnd) {
+  const cgLayer = document.getElementById('cgLayer');
+  const cgVideo = document.getElementById('cgVideo');
+  const cgImage = document.getElementById('cgImage');
+  const cgText = document.getElementById('cgText');
+  cgLayer.style.display = 'flex';
+  cgVideo.style.display = 'block';
+  cgImage.style.display = 'none';
+  cgText.style.display = 'none';
+  cgVideo.src = url;
+  cgVideo.muted = true;
+  cgVideo.play().catch(() => {});
+  cgVideo.onended = () => { cgVideo.style.display = 'none'; if (onEnd) onEnd(); };
+}
+
+// ===================== 28. 罗盘 =====================
+let compassOn = false;
+const compassDotsEl = document.getElementById('compassDots');
+const compassPanel = document.getElementById('compassPanel');
+
+document.getElementById('compassToggle').onclick = () => {
+  compassOn = !compassOn;
+  compassPanel.style.display = compassOn ? 'block' : 'none';
+};
+
+// ⑥ 罗盘：显示整张地图 + 标志物黄点
+function updateCompass() {
+  if (!compassOn) return;
+  compassDotsEl.innerHTML = '';
+  const R = 30;
+
+  function toPercent(v) { return (v / R) * 50 + 50; }
+
+  // 玩家（绿点）
+  const px = toPercent(player.position.x);
+  const pz = toPercent(player.position.z);
+  if (px >= 0 && px <= 100 && pz >= 0 && pz <= 100) {
+    const dot = document.createElement('div');
+    dot.className = 'compassDot';
+    dot.style.background = '#00ff00';
+    dot.style.color = '#00ff00';
+    dot.style.left = px + '%';
+    dot.style.top = pz + '%';
+    compassDotsEl.appendChild(dot);
+  }
+
+  // 肉（红点）
+  for (const meat of activeMeat) {
+    const mx = toPercent(meat.position.x);
+    const mz = toPercent(meat.position.z);
+    if (mx < 0 || mx > 100 || mz < 0 || mz > 100) continue;
+    const dot = document.createElement('div');
+    dot.className = 'compassDot';
+    dot.style.background = '#ff2020';
+    dot.style.color = '#ff2020';
+    dot.style.left = mx + '%';
+    dot.style.top = mz + '%';
+    compassDotsEl.appendChild(dot);
+  }
+
+  // 标志物（黄点）- 仅出生地
+  if (spawnMarker && GAME.loopCount === 1) {
+    const sx = toPercent(spawnMarker.position.x);
+    const sz = toPercent(spawnMarker.position.z);
+    const dot = document.createElement('div');
+    dot.className = 'compassDot';
+    dot.style.background = '#ffdd00';
+    dot.style.color = '#ffdd00';
+    dot.style.left = sx + '%';
+    dot.style.top = sz + '%';
+    compassDotsEl.appendChild(dot);
+  }
+
+  // 伪装小怪（红点）
+  for (const m of activeMonsters) {
+    if (m.userData && m.userData.type === 'decoy') {
+      const dx = toPercent(m.position.x);
+      const dz = toPercent(m.position.z);
+      if (dx < 0 || dx > 100 || dz < 0 || dz > 100) continue;
+      const dot = document.createElement('div');
+      dot.className = 'compassDot';
+      dot.style.background = '#ff2020';
+      dot.style.color = '#ff2020';
+      dot.style.left = dx + '%';
+      dot.style.top = dz + '%';
+      compassDotsEl.appendChild(dot);
+    }
+  }
+}
+
+// ===================== 29. 面板拖拽 =====================
+function makeDraggable(el, handleEl) {
+  let startX = 0, startY = 0, startLeft = 0, startTop = 0, dragging = false;
+  const handle = handleEl || el;
+  handle.addEventListener('touchstart', e => {
+    dragging = true;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    const rect = el.getBoundingClientRect();
+    startLeft = rect.left; startTop = rect.top;
+    el.style.right = 'auto'; el.style.bottom = 'auto';
+    el.style.left = startLeft + 'px'; el.style.top = startTop + 'px';
+  }, { passive: true });
+  handle.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    el.style.left = (startLeft + dx) + 'px';
+    el.style.top = (startTop + dy) + 'px';
+  }, { passive: true });
+  handle.addEventListener('touchend', () => { dragging = false; });
+  handle.addEventListener('touchcancel', () => { dragging = false; });
+}
+
+makeDraggable(compassPanel);
+makeDraggable(document.getElementById('devPanel'), document.getElementById('devPanelHandle'));
+
+// ===================== 30. 小键盘 =====================
+let keypadInput = '';
+let keypadHoldTimer = null;
+const compassToggleEl = document.getElementById('compassToggle');
+compassToggleEl.addEventListener('dblclick', () => {
+  document.getElementById('keypadOverlay').style.display = 'flex';
+  keypadInput = '';
+  document.getElementById('keypadInput').value = '';
+});
+compassToggleEl.addEventListener('touchstart', () => {
+  keypadHoldTimer = setTimeout(() => {
+    document.getElementById('keypadOverlay').style.display = 'flex';
+    keypadInput = '';
+    document.getElementById('keypadInput').value = '';
+  }, 2500);
+}, { passive: true });
+compassToggleEl.addEventListener('touchend', () => clearTimeout(keypadHoldTimer));
+compassToggleEl.addEventListener('touchcancel', () => clearTimeout(keypadHoldTimer));
+document.getElementById('devHiddenEntry').addEventListener('click', () => {
+  document.getElementById('keypadOverlay').style.display = 'flex';
+  keypadInput = '';
+  document.getElementById('keypadInput').value = '';
+});
+
+window.pressKey = function(k) {
+  const inp = document.getElementById('keypadInput');
+  if (k === 'C') { keypadInput = ''; inp.value = ''; }
+  else if (k === 'OK') {
+    if (keypadInput === '2026') {
+      GAME.isDevMode = true;
+      document.getElementById('devPanel').style.display = 'flex';
+    }
+    keypadInput = ''; inp.value = '';
+    document.getElementById('keypadOverlay').style.display = 'none';
+  } else {
+    if (keypadInput.length < 6) { keypadInput += k; inp.value = keypadInput; }
+  }
+};
+
+document.getElementById('devAddMeat').onclick = () => {
+  GAME.meatCount++;
+  document.getElementById('meatCount').textContent = GAME.meatCount;
+  document.getElementById('eatBtn').style.display = GAME.meatCount > 0 ? 'block' : 'none';
+};
+document.getElementById('devAdd10Meat').onclick = () => {
+  GAME.meatCount += 10;
+  document.getElementById('meatCount').textContent = GAME.meatCount;
+  document.getElementById('eatBtn').style.display = GAME.meatCount > 0 ? 'block' : 'none';
+};
+
+let devTestIndex = 0;
+document.getElementById('devTestMonster').onclick = () => {
+  for (let i = activeMonsters.length - 1; i >= 0; i--) {
+    const m = activeMonsters[i];
+    if (m.userData && m.userData.isDevTest) { scene.remove(m); activeMonsters.splice(i, 1); }
+  }
+  if (giantMeatObj && giantMeatObj.userData.isDevTest) {
+    scene.remove(giantMeatObj);
+    const i = activeMonsters.indexOf(giantMeatObj);
+    if (i !== -1) activeMonsters.splice(i, 1);
+    giantMeatObj = null;
+  }
+  const tests = ['badi', 'observer_max', 'direc', 'decoy', 'giant', 'pusher'];
+  const t = tests[devTestIndex % tests.length];
+  devTestIndex++;
+  if (t === 'badi') { spawnBadi(); const m = activeMonsters[activeMonsters.length - 1]; if (m) m.userData.isDevTest = true; }
+  else if (t === 'observer_max') { spawnObserver(true); const m = activeMonsters[activeMonsters.length - 1]; if (m) m.userData.isDevTest = true; }
+  else if (t === 'direc') { spawnDirec(); const m = activeMonsters[activeMonsters.length - 1]; if (m) m.userData.isDevTest = true; }
+  else if (t === 'decoy') { spawnDecoy(); const m = activeMonsters[activeMonsters.length - 1]; if (m) m.userData.isDevTest = true; }
+  else if (t === 'giant') { spawnGiantMeat(); if (giantMeatObj) giantMeatObj.userData.isDevTest = true; }
+  else if (t === 'pusher') { spawnPusher(); const m = activeMonsters[activeMonsters.length - 1]; if (m) m.userData.isDevTest = true; }
+  console.log('🧪 测试怪：' + t);
+};
+
+document.getElementById('devTeleportSpawn').onclick = () => { player.position.set(BIRTH_POINT.x, 0.6, BIRTH_POINT.z); };
+document.getElementById('devToggleGod').onclick = () => {
+  GAME.isGodMode = !GAME.isGodMode;
+  alert('无敌模式：' + (GAME.isGodMode ? '开' : '关'));
+};
+document.getElementById('devClose').onclick = () => {
+  GAME.isDevMode = false;
+  GAME.isGodMode = false;
+  document.getElementById('devPanel').style.display = 'none';
+};
+
+// ===================== 31. 按钮绑定 =====================
+const INTRO_LINES = [
+  { t: '十年前，迷雾森林被发现。', cls: '' },
+  { t: '在里面，有一种能治愈一切绝症、让人起死回生的肉。', cls: '' },
+  { t: '外界为之疯狂，千金难求。于是，诞生了一个职业——偷肉人。', cls: '' },
+  { t: '', cls: '' },
+  { t: '但森林有它的法则：', cls: '' },
+  { t: '第一，进入迷雾，你身上的所有物品都会散落，你只能赤手空拳。', cls: 'small' },
+  { t: '第二，你需要在诡异的循环中找到10块肉，然后活着回到起点。', cls: 'small' },
+  { t: '第三，也是最重要的一条——', cls: 'small' },
+  { t: '', cls: '' },
+  { t: '千万、千万不要在森林里吃下它。', cls: 'red' },
+  { t: '', cls: '' },
+  { t: '因为……肉会记住你。', cls: '' },
+  { t: '', cls: '' },
+  { t: '【目标：收集10块肉，活着离开。】', cls: 'small' }
+];
+
+async function playIntro() {
+  const introEl = document.getElementById('introText');
+  introEl.innerHTML = '';
+  for (let i = 0; i < INTRO_LINES.length; i++) {
+    const line = INTRO_LINES[i];
+    const div = document.createElement('div');
+    div.className = 'line ' + line.cls;
+    introEl.appendChild(div);
+    await new Promise(resolve => {
+      let j = 0;
+      function typeChar() {
+        if (j < line.t.length) {
+          div.textContent += line.t.charAt(j);
+          j++;
+          introEl.scrollTop = introEl.scrollHeight;
+          setTimeout(typeChar, 60);
+        } else setTimeout(resolve, 500);
+      }
+      div.style.opacity = 1;
+      typeChar();
+    });
+  }
+}
+
+// ③ 主菜单 Bug + 1 分钟自动跳过（在 enterGame 之前重置 introDone）
+document.getElementById('btnStart').onclick = () => {
+  introDone = false;
+  document.getElementById('mainMenu').style.display = 'none';
+  document.getElementById('introScreen').style.display = 'flex';
+  unlockAudio();
+  try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch (e) {}
+  playIntro();
+};
+
+let introDone = false;
+function enterGame() {
+  if (introDone) return;
+  introDone = true;
+  document.getElementById('introScreen').style.display = 'none';
+  document.getElementById('gameUI').style.display = 'block';
+  document.getElementById('staminaWrap').style.display = 'block';
+  document.getElementById('crosshair').style.display = 'block';
+  GAME.state = 'playing';
+  startGame();
+}
+document.getElementById('introSkip').onclick = enterGame;
+
+document.getElementById('btnGallery').onclick = () => {
+  GAME.state = 'gallery';
+  document.getElementById('mainMenu').style.display = 'none';
+  document.getElementById('endingGallery').style.display = 'block';
+  renderGallery();
+};
+document.getElementById('btnExit').onclick = () => { window.close(); };
+document.getElementById('btnBackFromGallery').onclick = () => {
+  GAME.state = 'menu';
+  document.getElementById('endingGallery').style.display = 'none';
+  document.getElementById('mainMenu').style.display = 'flex';
+};
+
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+  const endings = [
+    { id: 'e1', unlocked: '达成结局图标結局一殘羹.png', locked: '达成结局图标未解锁結局一殘羹.png' },
+    { id: 'e2', unlocked: '达成结局图标結局二同化.png', locked: '达成结局图标未解锁結局二同化.png' },
+    { id: 'e3', unlocked: '达成结局图标結局三寂靜森林.png', locked: '达成结局图标未解锁結局三寂靜森林.png' },
+    { id: 'e4', unlocked: '达成结局图标結局四空手而歸.png', locked: '达成结局图标未解锁結局四空手而歸.png' },
+    { id: 'e6', unlocked: '达成结局图标結局六滿載而歸.png', locked: '达成结局图标未解锁結局六滿載而歸.png' },
+    { id: 'e7', unlocked: '达成结局图标結局七歸林.png', locked: '达成结局图标未解锁結局七歸林.png' },
+    { id: 'e5', unlocked: '达成结局图标結局五意外之喜.png', locked: '达成结局图标未解锁結局五.png', hidden: true }
+  ];
+  endings.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'item' + (e.hidden ? ' hiddenItem' : '');
+    const isUnlocked = unlockedEndings.includes(e.id);
+    const img = document.createElement('img');
+    img.src = './' + (isUnlocked ? e.unlocked : e.locked);
+    img.onerror = function() { this.style.display = 'none'; this.parentElement.innerHTML = '<div class="fallback">' + e.id + ' 结局</div>'; };
+    div.appendChild(img);
+    div.onclick = () => {
+      if (isUnlocked) {
+        document.getElementById('endingGallery').style.display = 'none';
+        playEndingFromGallery(e.id);
+      }
+    };
+    grid.appendChild(div);
+  });
+}
+
+function playEndingFromGallery(id) {
+  const cgLayer = document.getElementById('cgLayer');
+  const cgVideo = document.getElementById('cgVideo');
+  const cgImage = document.getElementById('cgImage');
+  const cgText = document.getElementById('cgText');
+  cgLayer.style.display = 'flex';
+  cgVideo.style.display = 'none';
+  cgImage.style.display = 'none';
+  cgText.style.display = 'none';
+  const url = ENDING_FILES[id];
+  if (url.endsWith('.mp4')) {
+    cgVideo.src = url; cgVideo.style.display = 'block'; cgVideo.muted = true; cgVideo.play().catch(() => {});
+    cgVideo.onended = () => { showEndingOptions(); };
+  } else {
+    cgImage.src = url;
+    cgImage.onerror = () => { cgImage.style.display = 'none'; showEndingOptions(); };
+    cgImage.style.display = 'block';
+    cgImage.style.opacity = 0;
+    cgImage.style.transition = 'opacity 2s';
+    setTimeout(() => { cgImage.style.opacity = 1; }, 100);
+    setTimeout(() => { showEndingOptions(); }, 5000);
+  }
+}
+
+document.getElementById('pickupBtn').addEventListener('click', tryPickup);
+document.getElementById('pickupBtn').addEventListener('touchstart', e => { e.preventDefault(); tryPickup(); }, { passive: false });
+document.getElementById('leaveBtn').addEventListener('click', tryLeave);
+document.getElementById('leaveBtn').addEventListener('touchstart', e => { e.preventDefault(); tryLeave(); }, { passive: false });
+document.getElementById('eatBtn').addEventListener('click', tryEat);
+document.getElementById('eatBtn').addEventListener('touchstart', e => { e.preventDefault(); tryEat(); }, { passive: false });
+document.getElementById('gunPickupBtn').addEventListener('click', pickupGun);
+document.getElementById('gunPickupBtn').addEventListener('touchstart', e => { e.preventDefault(); pickupGun(); }, { passive: false });
+document.getElementById('attackElfBtn').addEventListener('click', killElf);
+document.getElementById('attackElfBtn').addEventListener('touchstart', e => { e.preventDefault(); killElf(); }, { passive: false });
+document.getElementById('shootBtn').addEventListener('click', shootGun);
+document.getElementById('shootBtn').addEventListener('touchstart', e => { e.preventDefault(); shootGun(); }, { passive: false });
+document.getElementById('btnRestart').onclick = () => location.reload();
+document.getElementById('btnMainMenu').onclick = () => location.reload();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'w' || e.key === 'W') { moveFwd = true; keyW = true; }
+  if (e.key === 's' || e.key === 'S') { moveBwd = true; keyS = true; }
+  if (e.key === 'a' || e.key === 'A') { moveLeft = true; keyA = true; }
+  if (e.key === 'd' || e.key === 'D') { moveRight = true; keyD = true; }
+  if (e.key === 'Shift') runKeyDown = true;
+  if (e.key === ' ') { if (isGrounded) { velocityY = JUMP_V; isGrounded = false; } }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'w' || e.key === 'W') { moveFwd = false; keyW = false; }
+  if (e.key === 's' || e.key === 'S') { moveBwd = false; keyS = false; }
+  if (e.key === 'a' || e.key === 'A') { moveLeft = false; keyA = false; }
+  if (e.key === 'd' || e.key === 'D') { moveRight = false; keyD = false; }
+  if (e.key === 'Shift') runKeyDown = false;
+});
+
+bindDpad(document.getElementById('dpadUp'),    () => { moveFwd = true; keyW = true; },  () => { moveFwd = false; keyW = false; });
+bindDpad(document.getElementById('dpadDown'),  () => { moveBwd = true; keyS = true; },  () => { moveBwd = false; keyS = false; });
+bindDpad(document.getElementById('dpadLeft'),  () => { moveLeft = true; keyA = true; }, () => { moveLeft = false; keyA = false; });
+bindDpad(document.getElementById('dpadRight'), () => { moveRight = true; keyD = true; },() => { moveRight = false; keyD = false; });
+
+document.getElementById('jumpBtn').addEventListener('touchstart', e => { e.preventDefault(); if (isGrounded) { velocityY = JUMP_V; isGrounded = false; } }, { passive: false });
+document.getElementById('jumpBtn').addEventListener('click', () => { if (isGrounded) { velocityY = JUMP_V; isGrounded = false; } });
+
+const runBtnEl = document.getElementById('runBtn');
+function runDown() { runKeyDown = true; runBtnEl.classList.add('active'); }
+function runUp() { runKeyDown = false; runBtnEl.classList.remove('active'); }
+runBtnEl.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); runDown(); }, { passive: false });
+runBtnEl.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); runUp(); }, { passive: false });
+runBtnEl.addEventListener('touchcancel', () => runUp());
+runBtnEl.addEventListener('mousedown', e => { e.preventDefault(); runDown(); });
+runBtnEl.addEventListener('mouseup', e => { e.preventDefault(); runUp(); });
+
+renderer.domElement.addEventListener('touchstart', e => {
+  if (e.target === renderer.domElement) onLookStart(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (e.target === renderer.domElement) onLookMove(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+renderer.domElement.addEventListener('touchend', () => { isDragging = false; });
+renderer.domElement.addEventListener('mousedown', e => { onLookStart(e.clientX, e.clientY); });
+window.addEventListener('mousemove', e => { onLookMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup', () => { isDragging = false; });
+
+// ===================== 32. 主循环 =====================
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (GAME.state === 'playing' && !GAME.gameEnded) {
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    camera.position.set(player.position.x, player.position.y + EYE_HEIGHT, player.position.z);
+    flashlight.position.copy(camera.position);
+    flashlight.target.position.copy(camera.position).add(new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion));
+    flashlight.target.updateMatrixWorld();
+    updatePlayerMovement(dt);
+    checkLoopPortal();
+    updateInteractions();
+    modelObjects.forEach(m => {
+      m.colliders.forEach(col => {
+        col.worldX = m.mesh.position.x + col.localX;
+        col.worldY = m.mesh.position.y + col.localY;
+        col.worldZ = m.mesh.position.z + col.localZ;
+      });
+    });
+    modelObjects.forEach(m => {
+      if (m.file && m.file.includes('平面')) {
+        const dx = camera.position.x - m.mesh.position.x;
+        const dz = camera.position.z - m.mesh.position.z;
+        if (Math.hypot(dx, dz) > 1.0) m.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+    });
+    for (let i = activeMonsters.length - 1; i >= 0; i--) {
+      const m = activeMonsters[i];
+      if (!m.userData) continue;
+      const t = m.userData.type;
+      if (m.userData.isCollect10) continue;
+      const peaceful = GAME.meatEaten >= 7;
+      if (t === 'badi') { if (!peaceful) updateBadi(m, dt); }
+      else if (t === 'observer' || t === 'observer_max') updateObserver(m, dt);
+      else if (t === 'decoy') updateDecoy(m, dt);
+      else if (t === 'direc') { if (!peaceful) updateDirec(m, dt); }
+      else if (t === 'giant') {
+        if (GAME.meatCount >= 10) updateGiantMeat(dt);
+        else if (!peaceful) updateGiantMeat(dt);
+      }
+      else if (t === 'pusher') updatePusher(m, dt);
+      else if (t === 'elf') updateElf(dt);
+    }
+    checkStraightWalk(dt);
+    if (GAME.loopCount >= 1 && nextJumpscareTime && performance.now() > nextJumpscareTime) triggerJumpscare();
+    if (GAME.loopCount >= 1 && nextFlashTime && performance.now() > nextFlashTime) {
+      if (Math.random() < 0.5) spawnFlashGhost('lr');
+      else spawnFlashGhost('charge');
+    }
+    if (GAME.meatCount >= 9 && GAME.giantMeatSpawned && performance.now() > nextPushTime) {
+      if (!activeMonsters.find(m => m.userData && m.userData.type === 'pusher')) spawnPusher();
+    }
+    const distToBirth = Math.hypot(player.position.x - BIRTH_POINT.x, player.position.z - BIRTH_POINT.z);
+    // ④ 精灵仅在出生地，且仅第 1 圈
+    if (GAME.meatCount === 8 && !GAME.spiritTriggered && distToBirth < BIRTH_RADIUS && GAME.loopCount === 1 && !GAME.collect10Mode) {
+      GAME.spiritTriggered = true;
+      spawnElf();
+    }
+    if (GAME.collect10Mode) updateCollect10Monsters(dt);
+    updateFlashGhosts(dt);
+    updateCompass();
+  }
+  renderer.render(scene, camera);
+}
+
+// ===================== 33. 启动 =====================
+async function startGame() {
+  if (!loaded) {
+    document.getElementById('startScreen').style.display = 'flex';
+    await initAllScenes();
+    initAudio();
+    loadedCount = TOTAL_LOAD; updateProgress(0);
+    setTimeout(() => {
+      document.getElementById('startScreen').style.display = 'none';
+      playAudio('environment');
+    }, 600);
+    loaded = true;
+  }
+  clearAllMonsters();
+  spawnMeatForLoop();
+  nextJumpscareTime = performance.now() + 60 * 1000;
+  // ② 闪现怪间隔 1 分 20 秒
+  nextFlashTime = performance.now() + 80 * 1000;
+  nextPushTime = performance.now() + (60 + Math.random() * 30) * 1000;
+  GAME.state = 'playing';
+}
+
+function boot() {
+  const rh = document.getElementById('rotateHint');
+  if (rh) {
+    rh.addEventListener('click', () => { rh.style.display = 'none'; });
+    if (window.matchMedia('(orientation: portrait)').matches) {
+      rh.style.display = 'flex';
+      window.matchMedia('(orientation: landscape)').addEventListener('change', (e) => {
+        if (e.matches) rh.style.display = 'none';
+      });
+    }
+  }
+  console.log('[游戏偷肉人] 就绪');
+}
+
+boot();
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
